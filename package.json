@@ -1,0 +1,22 @@
+{
+  "name": "nalvie",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Open-source pomodoro/focus app for mobile. Grow a personal aquarium by staying off your phone.",
+  "license": "AGPL-3.0-only",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.0"
+  }
+}

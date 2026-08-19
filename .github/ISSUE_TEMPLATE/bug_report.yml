@@ -1,0 +1,31 @@
+name: Bug report
+description: Something isn't working the way it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this?
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: "iOS 18.1 / Android 15 / Expo Go / dev build"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version / commit
+    validations:
+      required: false

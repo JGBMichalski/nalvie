@@ -1,3 +1,6 @@
+# Personal context docs (not for repo/public sharing)
+focus-timer-spec.md
+
 # Logs
 logs
 *.log
@@ -141,3 +144,33 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# React Native
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+android/
+ios/
+
+# Turborepo
+.turbo/
+
+# macOS
+.DS_Store
+
+# Env
+.env
+.env.local
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
