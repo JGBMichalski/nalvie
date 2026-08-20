@@ -1,15 +1,15 @@
-import { useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useFocusEffect } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DurationPickerSheet } from '../components/DurationPickerSheet';
 import { GlassPanel } from '../components/GlassPanel';
 import { PlayIcon } from '../components/PlayIcon';
 import { TankBackdrop } from '../components/TankBackdrop';
+import { TankScene } from '../components/TankScene';
 import { useSessionLoop } from '../hooks/useSessionLoop';
-import { createInMemorySessionRepository } from '../lib/in-memory-session-repository';
-import { tankItemVisual } from '../lib/tank-item-visuals';
+import { sessionRepository } from '../lib/session-repository';
 import { theme } from '../theme';
 
 function formatRemaining(ms: number): string {
@@ -22,7 +22,6 @@ function formatRemaining(ms: number): string {
 // Home/Tank: the app's default screen
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const repository = useRef(createInMemorySessionRepository()).current;
   const [pickerVisible, setPickerVisible] = useState(false);
   const {
     phase,
@@ -35,7 +34,16 @@ export default function HomeScreen() {
     toastMessage,
     startSession,
     togglePause,
-  } = useSessionLoop(repository);
+    refresh,
+  } = useSessionLoop(sessionRepository);
+
+  // Picks up changes made elsewhere (e.g. the dev "unlock all creatures"
+  // menu action) whenever this screen comes back into focus.
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
 
   const pauseLabel = isPaused ? 'Resume' : hasUsedPause ? 'Pause used' : 'Pause';
 
@@ -48,13 +56,7 @@ export default function HomeScreen() {
           </Text>
         </GlassPanel>
 
-        <View style={styles.tank}>
-          {unlockedItems.map((item) => (
-            <Text key={item.id} style={styles.tankItem}>
-              {tankItemVisual(item.id)}
-            </Text>
-          ))}
-        </View>
+        <TankScene items={unlockedItems} />
 
         <Link href="/menu" asChild>
           <Pressable
@@ -124,17 +126,6 @@ const styles = StyleSheet.create({
   glassText: {
     color: theme.colors.glassText,
     fontSize: 13,
-  },
-  tank: {
-    flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignContent: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  tankItem: {
-    fontSize: 28,
   },
   menuButton: {
     position: 'absolute',

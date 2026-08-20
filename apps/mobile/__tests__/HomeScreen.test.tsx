@@ -1,31 +1,19 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent } from '@testing-library/react-native';
+import { renderRouter, screen } from 'expo-router/testing-library';
 import { MIN_SESSION_MINUTES } from '@nalvie/core';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import HomeScreen from '../app/index';
-
-function renderHomeScreen() {
-  return render(
-    <SafeAreaProvider initialMetrics={{ frame: { x: 0, y: 0, width: 0, height: 0 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } }}>
-      <HomeScreen />
-    </SafeAreaProvider>,
-  );
-}
+import { resetSessionRepositoryForTests } from '../lib/session-repository';
 
 describe('<HomeScreen />', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
+    resetSessionRepositoryForTests();
   });
 
   it('opens the duration picker from the FAB, then starts a session showing a countdown', async () => {
-    await renderHomeScreen();
+    renderRouter('./app', { initialUrl: '/' });
     await act(async () => {}); // flush mount-time repository load
 
-    fireEvent.press(screen.getByLabelText('Start a session'));
+    fireEvent.press(await screen.findByLabelText('Start a session'));
     expect(screen.getByText('Start a session')).toBeTruthy(); // sheet title
 
     fireEvent.press(screen.getByText('Start'));
@@ -36,10 +24,10 @@ describe('<HomeScreen />', () => {
   });
 
   it('toggles the pause button through Pause -> Resume -> Pause used', async () => {
-    await renderHomeScreen();
+    renderRouter('./app', { initialUrl: '/' });
     await act(async () => {});
 
-    fireEvent.press(screen.getByLabelText('Start a session'));
+    fireEvent.press(await screen.findByLabelText('Start a session'));
     fireEvent.press(screen.getByText('Start'));
     await act(async () => {}); // flush startSession's repository write
 
@@ -51,10 +39,10 @@ describe('<HomeScreen />', () => {
   });
 
   it('shows an unlock toast when the session completes, then returns to idle', async () => {
-    await renderHomeScreen();
+    renderRouter('./app', { initialUrl: '/' });
     await act(async () => {});
 
-    fireEvent.press(screen.getByLabelText('Start a session'));
+    fireEvent.press(await screen.findByLabelText('Start a session'));
     fireEvent.press(screen.getByText('Start'));
     await act(async () => {}); // flush startSession's repository write
 

@@ -1,12 +1,25 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { UNLOCK_POOL, unlockPoolItemToTankItem } from '@nalvie/core';
 
 import { GlassPanel } from '../components/GlassPanel';
+import { sessionRepository } from '../lib/session-repository';
 import { theme } from '../theme';
 
-// Secondary navigation, per Variant B: no persistent tab bar, a menu instead.
 export default function MenuScreen() {
+  const router = useRouter();
+
+  async function unlockAllCreatures() {
+    const unlockedAt = new Date().toISOString();
+    await Promise.all(
+      UNLOCK_POOL.map((item) =>
+        sessionRepository.saveTankItem(unlockPoolItemToTankItem(UNLOCK_POOL, item.id, unlockedAt)),
+      ),
+    );
+    router.back();
+  }
+
   return (
     <View style={styles.container}>
       <SafeAreaView edges={['top', 'bottom']} style={styles.content}>
@@ -24,6 +37,22 @@ export default function MenuScreen() {
             </GlassPanel>
           </Pressable>
         </Link>
+        {__DEV__ && (
+          <>
+            <Link href="/tank-preview" asChild>
+              <Pressable>
+                <GlassPanel style={styles.item}>
+                  <Text style={styles.itemText}>Tank preview (dev)</Text>
+                </GlassPanel>
+              </Pressable>
+            </Link>
+            <Pressable onPress={unlockAllCreatures}>
+              <GlassPanel style={styles.item}>
+                <Text style={styles.itemText}>Unlock all creatures (dev)</Text>
+              </GlassPanel>
+            </Pressable>
+          </>
+        )}
       </SafeAreaView>
     </View>
   );

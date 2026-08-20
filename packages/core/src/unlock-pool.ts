@@ -9,26 +9,27 @@ export interface UnlockPoolItem {
   eligibility: "always" | { minCompletedSessions: number } | { minStreakDays: number };
 }
 
-// 18 items total: 10 common, 6 uncommon, 2 rare.
+// 18 items total per spec (10 common, 6 uncommon, 2 rare) — seabed/decor
+// items are commented out for now, leaving 5 common, 3 uncommon, 1 rare.
 export const UNLOCK_POOL: UnlockPoolItem[] = [
   { id: "clownfish", name: "Clownfish", rarity: "common", eligibility: "always" },
   { id: "guppy", name: "Guppy", rarity: "common", eligibility: "always" },
   { id: "neon-tetra", name: "Neon Tetra", rarity: "common", eligibility: "always" },
   { id: "goldfish", name: "Goldfish", rarity: "common", eligibility: "always" },
-  { id: "starfish", name: "Starfish", rarity: "common", eligibility: "always" },
-  { id: "seaweed", name: "Seaweed", rarity: "common", eligibility: "always" },
-  { id: "pebbles", name: "Pebbles", rarity: "common", eligibility: "always" },
-  { id: "snail", name: "Snail", rarity: "common", eligibility: "always" },
+  // { id: "starfish", name: "Starfish", rarity: "common", eligibility: "always" },
+  // { id: "seaweed", name: "Seaweed", rarity: "common", eligibility: "always" },
+  // { id: "pebbles", name: "Pebbles", rarity: "common", eligibility: "always" },
+  // { id: "snail", name: "Snail", rarity: "common", eligibility: "always" },
   { id: "shrimp", name: "Shrimp", rarity: "common", eligibility: "always" },
-  { id: "bubbler", name: "Bubbler", rarity: "common", eligibility: "always" },
+  // { id: "bubbler", name: "Bubbler", rarity: "common", eligibility: "always" },
   { id: "angelfish", name: "Angelfish", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
   { id: "seahorse", name: "Seahorse", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
-  { id: "coral-branch", name: "Coral Branch", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
-  { id: "sunken-chest", name: "Sunken Chest", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
+  // { id: "coral-branch", name: "Coral Branch", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
+  // { id: "sunken-chest", name: "Sunken Chest", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
   { id: "jellyfish", name: "Jellyfish", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
-  { id: "anemone", name: "Anemone", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
+  // { id: "anemone", name: "Anemone", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
   { id: "sea-turtle", name: "Sea Turtle", rarity: "rare", eligibility: { minStreakDays: 7 } },
-  { id: "glowing-reef", name: "Glowing Reef", rarity: "rare", eligibility: { minStreakDays: 7 } },
+  // { id: "glowing-reef", name: "Glowing Reef", rarity: "rare", eligibility: { minStreakDays: 7 } },
 ];
 
 const RARITY_ODDS: Record<Rarity, number> = {

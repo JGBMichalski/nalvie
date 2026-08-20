@@ -156,5 +156,6 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     toastMessage,
     startSession,
     togglePause,
+    refresh: refreshFromRepository,
   };
 }
