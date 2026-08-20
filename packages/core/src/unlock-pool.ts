@@ -32,12 +32,6 @@ export const UNLOCK_POOL: UnlockPoolItem[] = [
   // { id: "glowing-reef", name: "Glowing Reef", rarity: "rare", eligibility: { minStreakDays: 7 } },
 ];
 
-const RARITY_ODDS: Record<Rarity, number> = {
-  common: 0.7,
-  uncommon: 0.25,
-  rare: 0.05,
-};
-
 function isEligible(item: UnlockPoolItem, stats: { completedSessions: number; streak: StreakInfo }): boolean {
   if (item.eligibility === "always") return true;
   if ("minCompletedSessions" in item.eligibility) {
@@ -56,26 +50,10 @@ export function eligiblePoolItems(
   return pool.filter((item) => isEligible(item, stats));
 }
 
-function pickWeighted(weights: Partial<Record<Rarity, number>>, random: () => number): Rarity {
-  const entries = Object.entries(weights) as [Rarity, number][];
-  const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
-  let roll = random() * total;
-  for (const [rarity, weight] of entries) {
-    if (roll < weight) return rarity;
-    roll -= weight;
-  }
-  return entries[entries.length - 1][0];
-}
-
-function pickOne(items: UnlockPoolItem[], random: () => number): string {
-  const index = Math.min(items.length - 1, Math.floor(random() * items.length));
-  return items[index].id;
-}
-
 /**
- * Builds the `TankItem` record for a reward id returned by `pickReward`.
- * `instanceId` must be unique per unlock, even for repeat instances of the
- * same species.
+ * Builds the `TankItem` record for a chosen (or, previously, randomly
+ * rewarded) item id. `instanceId` must be unique per unlock, even for repeat
+ * instances of the same species.
  */
 export function unlockPoolItemToTankItem(
   pool: UnlockPoolItem[],

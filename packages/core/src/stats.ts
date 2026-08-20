@@ -1,9 +1,7 @@
 import type { DailyStats, FocusSession, StreakInfo } from "./types.js";
 
-// Day-boundary/timezone rules are provisional pending the Stats screen.
-// Using the local calendar day for now.
-
-function localDateKey(iso: string): string {
+// "A day" = device-local calendar day (not UTC)
+export function localDateKey(iso: string): string {
   const d = new Date(iso);
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");

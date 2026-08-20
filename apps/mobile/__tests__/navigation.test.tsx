@@ -1,5 +1,5 @@
 import { renderRouter, screen } from 'expo-router/testing-library';
-import { fireEvent } from '@testing-library/react-native';
+import { act, fireEvent } from '@testing-library/react-native';
 
 // Integration test over the real app/ directory: exercises the navigation
 // (no tab bar — menu icon on Home routes to a modal linking to Stats/Settings).
@@ -19,5 +19,6 @@ describe('navigation shell', () => {
 
     fireEvent.press(await screen.findByText('Stats'));
     expect(screen).toHavePathname('/stats');
+    await act(async () => {}); // flush Stats' repository load
   });
 });
