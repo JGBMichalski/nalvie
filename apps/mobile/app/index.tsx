@@ -1,30 +1,64 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Link } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DurationPickerSheet } from '../components/DurationPickerSheet';
 import { GlassPanel } from '../components/GlassPanel';
 import { PlayIcon } from '../components/PlayIcon';
 import { TankBackdrop } from '../components/TankBackdrop';
+import { useSessionLoop } from '../hooks/useSessionLoop';
+import { createInMemorySessionRepository } from '../lib/in-memory-session-repository';
+import { tankItemVisual } from '../lib/tank-item-visuals';
 import { theme } from '../theme';
 
-// Home/Tank: the app's default screen. Full-bleed tank background, glass
-// overlay for stats, FAB for starting a session.
+function formatRemaining(ms: number): string {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+// Home/Tank: the app's default screen
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const repository = useRef(createInMemorySessionRepository()).current;
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const {
+    phase,
+    session,
+    remainingMs,
+    isPaused,
+    hasUsedPause,
+    unlockedItems,
+    streak,
+    toastMessage,
+    startSession,
+    togglePause,
+  } = useSessionLoop(repository);
+
+  const pauseLabel = isPaused ? 'Resume' : hasUsedPause ? 'Pause used' : 'Pause';
 
   return (
     <TankBackdrop>
       <SafeAreaView style={styles.overlay} edges={['top', 'bottom']}>
         <GlassPanel style={styles.streak}>
-          <Text style={styles.glassText}>Tank coming soon</Text>
+          <Text style={styles.glassText}>
+            🔥 {streak.current}-day streak · {unlockedItems.length} items
+          </Text>
         </GlassPanel>
+
+        <View style={styles.tank}>
+          {unlockedItems.map((item) => (
+            <Text key={item.id} style={styles.tankItem}>
+              {tankItemVisual(item.id)}
+            </Text>
+          ))}
+        </View>
 
         <Link href="/menu" asChild>
           <Pressable
-            style={StyleSheet.flatten([
-              styles.menuButton,
-              { top: insets.top + 20 },
-            ])}
+            style={StyleSheet.flatten([styles.menuButton, { top: insets.top + 20 }])}
             hitSlop={8}
             accessibilityLabel="Open menu"
           >
@@ -32,14 +66,49 @@ export default function HomeScreen() {
           </Pressable>
         </Link>
 
-        <Pressable
-          style={StyleSheet.flatten([styles.fab, { bottom: insets.bottom + 28 }])}
-          disabled
-          accessibilityLabel="Start a session"
-        >
-          <PlayIcon size={30} color={theme.colors.fabIcon} />
-        </Pressable>
+        {phase === 'in-progress' && session && (
+          <View style={StyleSheet.flatten([styles.sessionChrome, { bottom: insets.bottom + 28 }])}>
+            <GlassPanel style={styles.timerPanel}>
+              <Text style={styles.timerText}>{formatRemaining(remainingMs)}</Text>
+            </GlassPanel>
+            <Pressable onPress={togglePause} disabled={hasUsedPause && !isPaused}>
+              <GlassPanel
+                style={StyleSheet.flatten([
+                  styles.pausePanel,
+                  hasUsedPause && !isPaused && styles.pausePanelDisabled,
+                ])}
+              >
+                <Text style={styles.pauseText}>{pauseLabel}</Text>
+              </GlassPanel>
+            </Pressable>
+          </View>
+        )}
+
+        {(phase === 'toast-complete' || phase === 'toast-failed') && toastMessage && (
+          <GlassPanel style={StyleSheet.flatten([styles.toast, { bottom: insets.bottom + 28 }])}>
+            <Text style={styles.toastText}>{toastMessage}</Text>
+          </GlassPanel>
+        )}
+
+        {phase === 'idle' && (
+          <Pressable
+            style={StyleSheet.flatten([styles.fab, { bottom: insets.bottom + 28 }])}
+            accessibilityLabel="Start a session"
+            onPress={() => setPickerVisible(true)}
+          >
+            <PlayIcon size={30} color={theme.colors.fabIcon} />
+          </Pressable>
+        )}
       </SafeAreaView>
+
+      <DurationPickerSheet
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        onStart={(minutes) => {
+          setPickerVisible(false);
+          startSession(minutes);
+        }}
+      />
     </TankBackdrop>
   );
 }
@@ -55,6 +124,17 @@ const styles = StyleSheet.create({
   glassText: {
     color: theme.colors.glassText,
     fontSize: 13,
+  },
+  tank: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignContent: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  tankItem: {
+    fontSize: 28,
   },
   menuButton: {
     position: 'absolute',
@@ -81,5 +161,38 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.fabBackground,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  sessionChrome: {
+    position: 'absolute',
+    alignSelf: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  timerPanel: {
+    alignItems: 'center',
+  },
+  timerText: {
+    color: theme.colors.textPrimary,
+    fontSize: 32,
+    fontWeight: '200',
+  },
+  pausePanel: {
+    alignItems: 'center',
+  },
+  pausePanelDisabled: {
+    opacity: 0.5,
+  },
+  pauseText: {
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+  },
+  toast: {
+    position: 'absolute',
+    alignSelf: 'center',
+    maxWidth: '80%',
+  },
+  toastText: {
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
   },
 });

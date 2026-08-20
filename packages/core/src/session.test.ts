@@ -1,5 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
-import { elapsedMs, finalizeInterruptedSession, isSessionComplete } from "./session.js";
+import {
+  MAX_PAUSE_MS,
+  applyPause,
+  completeSession,
+  createSession,
+  elapsedMs,
+  failSession,
+  finalizeInterruptedSession,
+  hasUsedPause,
+  isSessionComplete,
+} from "./session.js";
 import type { SessionRepository } from "./repository.js";
 import type { FocusSession } from "./types.js";
 
@@ -64,6 +74,105 @@ describe("session", () => {
         ...inProgress,
         endedAt: now.toISOString(),
         outcome: "failed",
+      });
+    });
+  });
+
+  describe("createSession", () => {
+    it("creates an in-progress session with no outcome yet", () => {
+      const now = new Date("2026-01-01T00:00:00.000Z");
+      expect(createSession("s1", 25, now)).toEqual({
+        id: "s1",
+        plannedDurationMinutes: 25,
+        startedAt: now.toISOString(),
+        endedAt: null,
+        outcome: null,
+        awardedItemId: null,
+        pausedMs: 0,
+      });
+    });
+  });
+
+  describe("hasUsedPause", () => {
+    it("is false when no pause time has been recorded", () => {
+      expect(hasUsedPause({ pausedMs: 0 })).toBe(false);
+    });
+
+    it("is true once any pause time has been recorded", () => {
+      expect(hasUsedPause({ pausedMs: 1 })).toBe(true);
+    });
+  });
+
+  describe("applyPause", () => {
+    const base: FocusSession = {
+      id: "s1",
+      plannedDurationMinutes: 25,
+      startedAt: new Date("2026-01-01T00:00:00.000Z").toISOString(),
+      endedAt: null,
+      outcome: null,
+      awardedItemId: null,
+      pausedMs: 0,
+    };
+
+    it("adds the pause duration to pausedMs", () => {
+      expect(applyPause(base, 5_000).pausedMs).toBe(5_000);
+    });
+
+    it("caps the added pause duration at MAX_PAUSE_MS", () => {
+      expect(applyPause(base, MAX_PAUSE_MS + 60_000).pausedMs).toBe(MAX_PAUSE_MS);
+    });
+
+    it("is a no-op once a pause has already been used (single use per session)", () => {
+      const alreadyPaused = { ...base, pausedMs: 10_000 };
+      expect(applyPause(alreadyPaused, 5_000).pausedMs).toBe(10_000);
+    });
+
+    it("always registers as used, even for a near-instant pause/resume", () => {
+      // pausedMs > 0 is what hasUsedPause checks — a 0ms-duration pause must
+      // still count as "used", or the single-use guard could be bypassed.
+      const result = applyPause(base, 0);
+      expect(hasUsedPause(result)).toBe(true);
+    });
+  });
+
+  describe("completeSession", () => {
+    it("marks the session completed with the awarded item", () => {
+      const base: FocusSession = {
+        id: "s1",
+        plannedDurationMinutes: 25,
+        startedAt: new Date("2026-01-01T00:00:00.000Z").toISOString(),
+        endedAt: null,
+        outcome: null,
+        awardedItemId: null,
+        pausedMs: 0,
+      };
+      const now = new Date("2026-01-01T00:25:00.000Z");
+      expect(completeSession(base, "clownfish", now)).toEqual({
+        ...base,
+        endedAt: now.toISOString(),
+        outcome: "completed",
+        awardedItemId: "clownfish",
+      });
+    });
+  });
+
+  describe("failSession", () => {
+    it("marks the session failed with no awarded item", () => {
+      const base: FocusSession = {
+        id: "s1",
+        plannedDurationMinutes: 25,
+        startedAt: new Date("2026-01-01T00:00:00.000Z").toISOString(),
+        endedAt: null,
+        outcome: null,
+        awardedItemId: null,
+        pausedMs: 0,
+      };
+      const now = new Date("2026-01-01T00:05:00.000Z");
+      expect(failSession(base, now)).toEqual({
+        ...base,
+        endedAt: now.toISOString(),
+        outcome: "failed",
+        awardedItemId: null,
       });
     });
   });

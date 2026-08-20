@@ -39,3 +39,6 @@ export interface Settings {
   darkModeOverride: boolean | null; // null = follow system, true = dark, false = light
   notificationsEnabled: boolean;
 }
+
+// Pure state a session/tank screen can be in.
+export type SessionAnimationState = "idle" | "focusing" | "growing" | "celebrating" | "interrupted";

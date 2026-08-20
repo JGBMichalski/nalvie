@@ -8,7 +8,7 @@ describe('navigation shell', () => {
     renderRouter('./app', { initialUrl: '/' });
 
     expect(screen).toHavePathname('/');
-    expect(await screen.findByText('Tank coming soon')).toBeTruthy();
+    expect(await screen.findByText(/streak/)).toBeTruthy();
   });
 
   it('opens the menu from Home, then reaches Stats and Settings from it', async () => {

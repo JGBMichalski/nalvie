@@ -1,0 +1,104 @@
+import type { StreakInfo, TankItem } from "./types.js";
+
+export type Rarity = "common" | "uncommon" | "rare";
+
+export interface UnlockPoolItem {
+  id: string;
+  name: string;
+  rarity: Rarity;
+  eligibility: "always" | { minCompletedSessions: number } | { minStreakDays: number };
+}
+
+// 18 items total: 10 common, 6 uncommon, 2 rare.
+export const UNLOCK_POOL: UnlockPoolItem[] = [
+  { id: "clownfish", name: "Clownfish", rarity: "common", eligibility: "always" },
+  { id: "guppy", name: "Guppy", rarity: "common", eligibility: "always" },
+  { id: "neon-tetra", name: "Neon Tetra", rarity: "common", eligibility: "always" },
+  { id: "goldfish", name: "Goldfish", rarity: "common", eligibility: "always" },
+  { id: "starfish", name: "Starfish", rarity: "common", eligibility: "always" },
+  { id: "seaweed", name: "Seaweed", rarity: "common", eligibility: "always" },
+  { id: "pebbles", name: "Pebbles", rarity: "common", eligibility: "always" },
+  { id: "snail", name: "Snail", rarity: "common", eligibility: "always" },
+  { id: "shrimp", name: "Shrimp", rarity: "common", eligibility: "always" },
+  { id: "bubbler", name: "Bubbler", rarity: "common", eligibility: "always" },
+  { id: "angelfish", name: "Angelfish", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
+  { id: "seahorse", name: "Seahorse", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
+  { id: "coral-branch", name: "Coral Branch", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
+  { id: "sunken-chest", name: "Sunken Chest", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
+  { id: "jellyfish", name: "Jellyfish", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
+  { id: "anemone", name: "Anemone", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
+  { id: "sea-turtle", name: "Sea Turtle", rarity: "rare", eligibility: { minStreakDays: 7 } },
+  { id: "glowing-reef", name: "Glowing Reef", rarity: "rare", eligibility: { minStreakDays: 7 } },
+];
+
+const RARITY_ODDS: Record<Rarity, number> = {
+  common: 0.7,
+  uncommon: 0.25,
+  rare: 0.05,
+};
+
+function isEligible(item: UnlockPoolItem, stats: { completedSessions: number; streak: StreakInfo }): boolean {
+  if (item.eligibility === "always") return true;
+  if ("minCompletedSessions" in item.eligibility) {
+    return stats.completedSessions >= item.eligibility.minCompletedSessions;
+  }
+  return stats.streak.current >= item.eligibility.minStreakDays;
+}
+
+function pickWeighted(weights: Partial<Record<Rarity, number>>, random: () => number): Rarity {
+  const entries = Object.entries(weights) as [Rarity, number][];
+  const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
+  let roll = random() * total;
+  for (const [rarity, weight] of entries) {
+    if (roll < weight) return rarity;
+    roll -= weight;
+  }
+  return entries[entries.length - 1][0];
+}
+
+function pickOne(items: UnlockPoolItem[], random: () => number): string {
+  const index = Math.min(items.length - 1, Math.floor(random() * items.length));
+  return items[index].id;
+}
+
+/**
+ * Picks the id of the reward item awarded for a just-completed session.
+ */
+export function pickReward(
+  pool: UnlockPoolItem[],
+  unlockedItems: TankItem[],
+  stats: { completedSessions: number; streak: StreakInfo },
+  random: () => number = Math.random,
+): string {
+  const unlockedIds = new Set(unlockedItems.map((item) => item.id));
+  const eligible = pool.filter((item) => isEligible(item, stats));
+
+  const weights: Partial<Record<Rarity, number>> = {};
+  for (const item of eligible) {
+    weights[item.rarity] = RARITY_ODDS[item.rarity];
+  }
+
+  const rarity = pickWeighted(weights, random);
+  const eligibleInRarity = eligible.filter((item) => item.rarity === rarity);
+  const freshInRarity = eligibleInRarity.filter((item) => !unlockedIds.has(item.id));
+
+  const firstPick = pickOne(eligibleInRarity, random);
+  if (!unlockedIds.has(firstPick)) return firstPick; // fresh unlock, done
+
+  // Duplicate: reroll once, specifically among the fresh items in this
+  // tier, not the whole eligible set again, unless there isn't a fresh
+  // one left (in which case duplicates are allowed).
+  if (freshInRarity.length === 0) return firstPick;
+  return pickOne(freshInRarity, random);
+}
+
+/** Builds the `TankItem` record for a reward id returned by `pickReward`. */
+export function unlockPoolItemToTankItem(pool: UnlockPoolItem[], itemId: string, unlockedAt: string): TankItem {
+  const poolItem = pool.find((item) => item.id === itemId);
+  return {
+    id: itemId,
+    name: poolItem?.name ?? itemId,
+    rarity: poolItem?.rarity ?? "common",
+    unlockedAt,
+  };
+}
