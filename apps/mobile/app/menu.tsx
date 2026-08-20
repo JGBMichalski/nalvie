@@ -14,7 +14,7 @@ export default function MenuScreen() {
     const unlockedAt = new Date().toISOString();
     await Promise.all(
       UNLOCK_POOL.map((item) =>
-        sessionRepository.saveTankItem(unlockPoolItemToTankItem(UNLOCK_POOL, item.id, unlockedAt)),
+        sessionRepository.saveTankItem(unlockPoolItemToTankItem(UNLOCK_POOL, item.id, item.id, unlockedAt)),
       ),
     );
     router.back();

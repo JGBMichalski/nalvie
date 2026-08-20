@@ -106,6 +106,22 @@ export function createAgents(
   return agents;
 }
 
+/**
+ * Rebuilds the agent list for the current set of ids, but reuses each
+ * existing agent in place rather than recreating it — so adding or removing
+ * one fish doesn't reset the others back to their spawn position.
+ */
+export function reconcileAgents(
+  existingAgents: Agent[],
+  ids: string[],
+  swimmerSize: number,
+  width: number,
+  height: number,
+): Agent[] {
+  const existingById = new Map(existingAgents.map((agent) => [agent.id, agent]));
+  return ids.map((id) => existingById.get(id) ?? createAgent(id, swimmerSize, width, height));
+}
+
 /** Advances every agent by `dt` seconds. Mutates in place. */
 export function stepAgents(agents: Agent[], width: number, height: number, dt: number): void {
   'worklet';

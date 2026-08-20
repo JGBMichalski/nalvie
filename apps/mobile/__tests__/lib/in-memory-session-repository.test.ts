@@ -9,6 +9,7 @@ describe('createInMemorySessionRepository', () => {
       startedAt: new Date().toISOString(),
       endedAt: null,
       outcome: null,
+      selectedItemId: 'clownfish',
       awardedItemId: null,
       pausedMs: 0,
     };
@@ -27,6 +28,7 @@ describe('createInMemorySessionRepository', () => {
       startedAt: new Date().toISOString(),
       endedAt: new Date().toISOString(),
       outcome: 'completed' as const,
+      selectedItemId: 'clownfish',
       awardedItemId: 'clownfish',
       pausedMs: 0,
     };
@@ -45,7 +47,13 @@ describe('createInMemorySessionRepository', () => {
 
   it('round-trips tank items', async () => {
     const repo = createInMemorySessionRepository();
-    const item = { id: 'clownfish', name: 'Clownfish', rarity: 'common' as const, unlockedAt: new Date().toISOString() };
+    const item = {
+      id: 'instance-1',
+      speciesId: 'clownfish',
+      name: 'Clownfish',
+      rarity: 'common' as const,
+      unlockedAt: new Date().toISOString(),
+    };
 
     await repo.saveTankItem(item);
 

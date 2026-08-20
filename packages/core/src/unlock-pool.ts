@@ -46,6 +46,16 @@ function isEligible(item: UnlockPoolItem, stats: { completedSessions: number; st
   return stats.streak.current >= item.eligibility.minStreakDays;
 }
 
+/**
+ * What the fish picker should offer, regardless of what's already unlocked.
+ */
+export function eligiblePoolItems(
+  pool: UnlockPoolItem[],
+  stats: { completedSessions: number; streak: StreakInfo },
+): UnlockPoolItem[] {
+  return pool.filter((item) => isEligible(item, stats));
+}
+
 function pickWeighted(weights: Partial<Record<Rarity, number>>, random: () => number): Rarity {
   const entries = Object.entries(weights) as [Rarity, number][];
   const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
@@ -63,41 +73,20 @@ function pickOne(items: UnlockPoolItem[], random: () => number): string {
 }
 
 /**
- * Picks the id of the reward item awarded for a just-completed session.
+ * Builds the `TankItem` record for a reward id returned by `pickReward`.
+ * `instanceId` must be unique per unlock, even for repeat instances of the
+ * same species.
  */
-export function pickReward(
+export function unlockPoolItemToTankItem(
   pool: UnlockPoolItem[],
-  unlockedItems: TankItem[],
-  stats: { completedSessions: number; streak: StreakInfo },
-  random: () => number = Math.random,
-): string {
-  const unlockedIds = new Set(unlockedItems.map((item) => item.id));
-  const eligible = pool.filter((item) => isEligible(item, stats));
-
-  const weights: Partial<Record<Rarity, number>> = {};
-  for (const item of eligible) {
-    weights[item.rarity] = RARITY_ODDS[item.rarity];
-  }
-
-  const rarity = pickWeighted(weights, random);
-  const eligibleInRarity = eligible.filter((item) => item.rarity === rarity);
-  const freshInRarity = eligibleInRarity.filter((item) => !unlockedIds.has(item.id));
-
-  const firstPick = pickOne(eligibleInRarity, random);
-  if (!unlockedIds.has(firstPick)) return firstPick; // fresh unlock, done
-
-  // Duplicate: reroll once, specifically among the fresh items in this
-  // tier, not the whole eligible set again, unless there isn't a fresh
-  // one left (in which case duplicates are allowed).
-  if (freshInRarity.length === 0) return firstPick;
-  return pickOne(freshInRarity, random);
-}
-
-/** Builds the `TankItem` record for a reward id returned by `pickReward`. */
-export function unlockPoolItemToTankItem(pool: UnlockPoolItem[], itemId: string, unlockedAt: string): TankItem {
+  itemId: string,
+  instanceId: string,
+  unlockedAt: string,
+): TankItem {
   const poolItem = pool.find((item) => item.id === itemId);
   return {
-    id: itemId,
+    id: instanceId,
+    speciesId: itemId,
     name: poolItem?.name ?? itemId,
     rarity: poolItem?.rarity ?? "common",
     unlockedAt,

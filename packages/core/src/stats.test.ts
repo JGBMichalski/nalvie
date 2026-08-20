@@ -9,6 +9,7 @@ function session(overrides: Partial<FocusSession>): FocusSession {
     startedAt: new Date().toISOString(),
     endedAt: new Date().toISOString(),
     outcome: "completed",
+    selectedItemId: "clownfish",
     awardedItemId: null,
     pausedMs: 0,
     ...overrides,

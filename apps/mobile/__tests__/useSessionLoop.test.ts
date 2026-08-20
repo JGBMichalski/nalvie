@@ -29,7 +29,7 @@ describe('useSessionLoop', () => {
     expect(result.current.phase).toBe('idle');
 
     await act(async () => {
-      await result.current.startSession(MIN_SESSION_MINUTES);
+      await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
     });
     expect(result.current.phase).toBe('in-progress');
     expect(result.current.session?.plannedDurationMinutes).toBe(MIN_SESSION_MINUTES);
@@ -50,6 +50,37 @@ describe('useSessionLoop', () => {
     expect(result.current.phase).toBe('idle');
   });
 
+  it('adds a second instance of the same species rather than overwriting the first', async () => {
+    const repo = createInMemorySessionRepository();
+    const { result } = renderHook(() => useSessionLoop(repo));
+    await act(async () => {});
+
+    await act(async () => {
+      await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(MIN_SESSION_MINUTES * 60_000 + 1000);
+      await Promise.resolve();
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+    expect(result.current.phase).toBe('idle');
+
+    await act(async () => {
+      await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(MIN_SESSION_MINUTES * 60_000 + 1000);
+      await Promise.resolve();
+    });
+
+    const items = await repo.listTankItems();
+    expect(items).toHaveLength(2);
+    expect(items.every((item) => item.speciesId === 'clownfish')).toBe(true);
+    expect(new Set(items.map((item) => item.id)).size).toBe(2); // distinct instance ids
+  });
+
   it('does not complete the session while paused, even past the planned duration', async () => {
     const repo = createInMemorySessionRepository();
     const { result } = renderHook(() => useSessionLoop(repo));
@@ -57,7 +88,7 @@ describe('useSessionLoop', () => {
     expect(result.current.phase).toBe('idle');
 
     await act(async () => {
-      await result.current.startSession(MIN_SESSION_MINUTES);
+      await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
     });
 
     act(() => result.current.togglePause());
@@ -78,7 +109,7 @@ describe('useSessionLoop', () => {
     expect(result.current.phase).toBe('idle');
 
     await act(async () => {
-      await result.current.startSession(MIN_SESSION_MINUTES);
+      await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
     });
 
     act(() => result.current.togglePause());
@@ -96,7 +127,7 @@ describe('useSessionLoop', () => {
     expect(result.current.phase).toBe('idle');
 
     await act(async () => {
-      await result.current.startSession(MIN_SESSION_MINUTES);
+      await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
     });
 
     act(() => result.current.togglePause());
@@ -115,7 +146,7 @@ describe('useSessionLoop', () => {
     await act(async () => {});
 
     await act(async () => {
-      await result.current.startSession(MIN_SESSION_MINUTES);
+      await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
     });
     act(() => result.current.togglePause());
     expect(result.current.isPaused).toBe(true);
@@ -137,7 +168,7 @@ describe('useSessionLoop', () => {
     await act(async () => {});
 
     await act(async () => {
-      await result.current.startSession(MIN_SESSION_MINUTES);
+      await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
     });
 
     await act(async () => {

@@ -63,6 +63,7 @@ describe("session", () => {
         startedAt: new Date("2026-01-01T00:00:00.000Z").toISOString(),
         endedAt: null,
         outcome: null,
+        selectedItemId: "clownfish",
         awardedItemId: null,
         pausedMs: 0,
       };
@@ -81,12 +82,13 @@ describe("session", () => {
   describe("createSession", () => {
     it("creates an in-progress session with no outcome yet", () => {
       const now = new Date("2026-01-01T00:00:00.000Z");
-      expect(createSession("s1", 25, now)).toEqual({
+      expect(createSession("s1", 25, "clownfish", now)).toEqual({
         id: "s1",
         plannedDurationMinutes: 25,
         startedAt: now.toISOString(),
         endedAt: null,
         outcome: null,
+        selectedItemId: "clownfish",
         awardedItemId: null,
         pausedMs: 0,
       });
@@ -110,6 +112,7 @@ describe("session", () => {
       startedAt: new Date("2026-01-01T00:00:00.000Z").toISOString(),
       endedAt: null,
       outcome: null,
+      selectedItemId: "clownfish",
       awardedItemId: null,
       pausedMs: 0,
     };
@@ -136,18 +139,19 @@ describe("session", () => {
   });
 
   describe("completeSession", () => {
-    it("marks the session completed with the awarded item", () => {
+    it("marks the session completed, awarding the item selected when the session started", () => {
       const base: FocusSession = {
         id: "s1",
         plannedDurationMinutes: 25,
         startedAt: new Date("2026-01-01T00:00:00.000Z").toISOString(),
         endedAt: null,
         outcome: null,
+        selectedItemId: "clownfish",
         awardedItemId: null,
         pausedMs: 0,
       };
       const now = new Date("2026-01-01T00:25:00.000Z");
-      expect(completeSession(base, "clownfish", now)).toEqual({
+      expect(completeSession(base, now)).toEqual({
         ...base,
         endedAt: now.toISOString(),
         outcome: "completed",
@@ -164,6 +168,7 @@ describe("session", () => {
         startedAt: new Date("2026-01-01T00:00:00.000Z").toISOString(),
         endedAt: null,
         outcome: null,
+        selectedItemId: "clownfish",
         awardedItemId: null,
         pausedMs: 0,
       };

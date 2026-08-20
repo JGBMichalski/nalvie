@@ -8,7 +8,8 @@ import Reanimated, {
 import type { TankItem } from '@nalvie/core';
 
 import { TankItemVisual } from './TankItemVisual';
-import { createAgents, stepAgents, type Agent } from '../lib/tank-simulation';
+import { reconcileAgents, stepAgents, type Agent } from '../lib/tank-simulation';
+import { agentId } from '../lib/tank-species';
 import { tankItemBehaviour, tankItemSizeScale } from '../lib/tank-item-visuals';
 
 const SWIMMER_SIZE = 72;
@@ -117,10 +118,9 @@ export function TankScene({ items }: { items: TankItem[] }) {
     );
   };
 
-  const swimmers = items.filter((item) => tankItemBehaviour(item.id) === 'swim');
-  const seabed = items.filter((item) => tankItemBehaviour(item.id) === 'seabed');
-  const swimmerKey = swimmers.map((item) => item.id).join(',');
-  const seabedKey = seabed.map((item) => item.id).join(',');
+  const swimmers = items.filter((item) => tankItemBehaviour(item.speciesId) === 'swim');
+  const seabed = items.filter((item) => tankItemBehaviour(item.speciesId) === 'seabed');
+  const swimmerKey = swimmers.map((item) => agentId(item.speciesId, item.id)).join(',');
 
   const populated = bounds.width > 0 && bounds.height > 0 && swimmerKey !== '';
 
@@ -129,7 +129,8 @@ export function TankScene({ items }: { items: TankItem[] }) {
       agents.value = [];
       return;
     }
-    agents.value = createAgents(swimmerKey.split(','), SWIMMER_SIZE, bounds.width, bounds.height);
+    // A newly-added fish shouldn't reset the ones already swimming back to their spawn position.
+    agents.value = reconcileAgents(agents.value, swimmerKey.split(','), SWIMMER_SIZE, bounds.width, bounds.height);
   }, [agents, populated, swimmerKey, bounds.width, bounds.height]);
 
   useFrameCallback((frame) => {
@@ -146,26 +147,27 @@ export function TankScene({ items }: { items: TankItem[] }) {
 
   const seabedLayout = useMemo(
     () =>
-      seabedKey === ''
+      seabed.length === 0
         ? []
-        : seabedKey.split(',').map((id, index, all) => ({
-            id,
+        : seabed.map((item, index, all) => ({
+            key: agentId(item.speciesId, item.id),
+            speciesId: item.speciesId,
             left: Math.max(
               0,
               ((index + 0.5) * bounds.width) / Math.max(1, all.length) - SEABED_SIZE / 2,
             ),
           })),
-    [seabedKey, bounds.width],
+    [seabed, bounds.width],
   );
 
   return (
     <View style={styles.tank} onLayout={onLayout} pointerEvents="none" testID="tank-scene">
-      {seabedLayout.map(({ id, left }) => (
-        <SeabedItem key={id} itemId={id} left={left} />
+      {seabedLayout.map(({ key, speciesId, left }) => (
+        <SeabedItem key={key} itemId={speciesId} left={left} />
       ))}
       {populated &&
         swimmers.map((item, index) => (
-          <Swimmer key={item.id} itemId={item.id} index={index} agents={agents} />
+          <Swimmer key={item.id} itemId={item.speciesId} index={index} agents={agents} />
         ))}
     </View>
   );

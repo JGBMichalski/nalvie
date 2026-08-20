@@ -2,6 +2,7 @@ import {
   angleDelta,
   createAgent,
   createAgents,
+  reconcileAgents,
   stepAgents,
   type Agent,
 } from '../../lib/tank-simulation';
@@ -211,5 +212,41 @@ describe('reproducibility', () => {
 
     const xs = agents.map((agent) => agent.x);
     expect(new Set(xs).size).toBe(xs.length);
+  });
+});
+
+describe('reconcileAgents', () => {
+  it('reuses an existing agent in place rather than recreating it', () => {
+    const existing = createAgents(['clownfish', 'guppy'], SIZE, WIDTH, HEIGHT);
+    run(existing, 3); // move them away from their spawn position
+
+    const reconciled = reconcileAgents(existing, ['clownfish', 'guppy'], SIZE, WIDTH, HEIGHT);
+
+    expect(reconciled[0]).toBe(existing[0]);
+    expect(reconciled[1]).toBe(existing[1]);
+  });
+
+  it('adds a new agent for a newly-added id without resetting the others', () => {
+    const existing = createAgents(['clownfish'], SIZE, WIDTH, HEIGHT);
+    run(existing, 3);
+    const movedX = existing[0].x;
+    const movedY = existing[0].y;
+
+    const reconciled = reconcileAgents(existing, ['clownfish', 'guppy'], SIZE, WIDTH, HEIGHT);
+
+    expect(reconciled).toHaveLength(2);
+    expect(reconciled[0]).toBe(existing[0]);
+    expect(reconciled[0].x).toBe(movedX);
+    expect(reconciled[0].y).toBe(movedY);
+    expect(reconciled[1].id).toBe('guppy');
+  });
+
+  it('drops agents whose id is no longer present', () => {
+    const existing = createAgents(['clownfish', 'guppy'], SIZE, WIDTH, HEIGHT);
+
+    const reconciled = reconcileAgents(existing, ['guppy'], SIZE, WIDTH, HEIGHT);
+
+    expect(reconciled).toHaveLength(1);
+    expect(reconciled[0]).toBe(existing[1]);
   });
 });

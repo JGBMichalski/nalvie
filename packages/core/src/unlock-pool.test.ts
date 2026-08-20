@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { UNLOCK_POOL, pickReward, unlockPoolItemToTankItem } from "./unlock-pool.js";
+import { UNLOCK_POOL, eligiblePoolItems, pickReward, unlockPoolItemToTankItem } from "./unlock-pool.js";
 import type { UnlockPoolItem } from "./unlock-pool.js";
 import type { TankItem } from "./types.js";
 
-function tankItem(id: string): TankItem {
-  return { id, name: id, rarity: "common", unlockedAt: new Date().toISOString() };
+function tankItem(speciesId: string, instanceId: string = speciesId): TankItem {
+  return { id: instanceId, speciesId, name: speciesId, rarity: "common", unlockedAt: new Date().toISOString() };
 }
 
 function stats(overrides: Partial<{ completedSessions: number; streak: { current: number; longest: number } }> = {}) {
@@ -124,11 +124,36 @@ describe("pickReward", () => {
   });
 });
 
+describe("eligiblePoolItems", () => {
+  const commonPool = [{ id: "c1", name: "Common 1", rarity: "common" as const, eligibility: "always" as const }];
+  const uncommonPool = [
+    { id: "u1", name: "Uncommon 1", rarity: "uncommon" as const, eligibility: { minCompletedSessions: 5 } },
+  ];
+  const rarePool = [{ id: "r1", name: "Rare 1", rarity: "rare" as const, eligibility: { minStreakDays: 7 } }];
+  const fullPool = [...commonPool, ...uncommonPool, ...rarePool];
+
+  it("includes only always-eligible items before any gate opens", () => {
+    const items = eligiblePoolItems(fullPool, stats({ completedSessions: 0 }));
+    expect(items.map((i) => i.id)).toEqual(["c1"]);
+  });
+
+  it("includes uncommon items once the session-count gate is met", () => {
+    const items = eligiblePoolItems(fullPool, stats({ completedSessions: 5 }));
+    expect(items.map((i) => i.id)).toEqual(["c1", "u1"]);
+  });
+
+  it("includes rare items once the streak gate is met", () => {
+    const items = eligiblePoolItems(fullPool, stats({ completedSessions: 5, streak: { current: 7, longest: 7 } }));
+    expect(items.map((i) => i.id)).toEqual(["c1", "u1", "r1"]);
+  });
+});
+
 describe("unlockPoolItemToTankItem", () => {
-  it("builds a TankItem from the matching catalog entry", () => {
+  it("builds a TankItem from the matching catalog entry, keyed by the given instance id", () => {
     const unlockedAt = new Date("2026-01-01T00:00:00.000Z").toISOString();
-    expect(unlockPoolItemToTankItem(UNLOCK_POOL, "clownfish", unlockedAt)).toEqual({
-      id: "clownfish",
+    expect(unlockPoolItemToTankItem(UNLOCK_POOL, "clownfish", "instance-1", unlockedAt)).toEqual({
+      id: "instance-1",
+      speciesId: "clownfish",
       name: "Clownfish",
       rarity: "common",
       unlockedAt,
@@ -137,11 +162,20 @@ describe("unlockPoolItemToTankItem", () => {
 
   it("falls back to the raw id/common rarity for an id not in the pool", () => {
     const unlockedAt = new Date("2026-01-01T00:00:00.000Z").toISOString();
-    expect(unlockPoolItemToTankItem(UNLOCK_POOL, "not-a-real-item", unlockedAt)).toEqual({
-      id: "not-a-real-item",
+    expect(unlockPoolItemToTankItem(UNLOCK_POOL, "not-a-real-item", "instance-1", unlockedAt)).toEqual({
+      id: "instance-1",
+      speciesId: "not-a-real-item",
       name: "not-a-real-item",
       rarity: "common",
       unlockedAt,
     });
+  });
+
+  it("allows two instances of the same species with different instance ids", () => {
+    const unlockedAt = new Date("2026-01-01T00:00:00.000Z").toISOString();
+    const first = unlockPoolItemToTankItem(UNLOCK_POOL, "clownfish", "instance-1", unlockedAt);
+    const second = unlockPoolItemToTankItem(UNLOCK_POOL, "clownfish", "instance-2", unlockedAt);
+    expect(first.id).not.toBe(second.id);
+    expect(first.speciesId).toBe(second.speciesId);
   });
 });

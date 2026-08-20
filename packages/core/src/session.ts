@@ -37,13 +37,19 @@ export async function finalizeInterruptedSession(repository: SessionRepository, 
   });
 }
 
-export function createSession(id: string, plannedDurationMinutes: number, now: Date = new Date()): FocusSession {
+export function createSession(
+  id: string,
+  plannedDurationMinutes: number,
+  selectedItemId: string,
+  now: Date = new Date(),
+): FocusSession {
   return {
     id,
     plannedDurationMinutes,
     startedAt: now.toISOString(),
     endedAt: null,
     outcome: null,
+    selectedItemId,
     awardedItemId: null,
     pausedMs: 0,
   };
@@ -61,8 +67,8 @@ export function applyPause(session: FocusSession, pauseDurationMs: number): Focu
   return { ...session, pausedMs: cappedMs };
 }
 
-export function completeSession(session: FocusSession, awardedItemId: string, now: Date = new Date()): FocusSession {
-  return { ...session, endedAt: now.toISOString(), outcome: "completed", awardedItemId };
+export function completeSession(session: FocusSession, now: Date = new Date()): FocusSession {
+  return { ...session, endedAt: now.toISOString(), outcome: "completed", awardedItemId: session.selectedItemId };
 }
 
 export function failSession(session: FocusSession, now: Date = new Date()): FocusSession {

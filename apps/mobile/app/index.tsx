@@ -4,6 +4,7 @@ import { Link, useFocusEffect } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DurationPickerSheet } from '../components/DurationPickerSheet';
+import { FishPickerSheet } from '../components/FishPickerSheet';
 import { GlassPanel } from '../components/GlassPanel';
 import { PlayIcon } from '../components/PlayIcon';
 import { TankBackdrop } from '../components/TankBackdrop';
@@ -22,7 +23,8 @@ function formatRemaining(ms: number): string {
 // Home/Tank: the app's default screen
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const [pickerVisible, setPickerVisible] = useState(false);
+  const [step, setStep] = useState<'idle' | 'fish' | 'duration'>('idle');
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const {
     phase,
     session,
@@ -30,6 +32,7 @@ export default function HomeScreen() {
     isPaused,
     hasUsedPause,
     unlockedItems,
+    eligibleItems,
     streak,
     toastMessage,
     startSession,
@@ -96,19 +99,29 @@ export default function HomeScreen() {
           <Pressable
             style={StyleSheet.flatten([styles.fab, { bottom: insets.bottom + 28 }])}
             accessibilityLabel="Start a session"
-            onPress={() => setPickerVisible(true)}
+            onPress={() => setStep('fish')}
           >
             <PlayIcon size={30} color={theme.colors.fabIcon} />
           </Pressable>
         )}
       </SafeAreaView>
 
+      <FishPickerSheet
+        visible={step === 'fish'}
+        items={eligibleItems}
+        onClose={() => setStep('idle')}
+        onSelect={(itemId) => {
+          setSelectedItemId(itemId);
+          setStep('duration');
+        }}
+      />
+
       <DurationPickerSheet
-        visible={pickerVisible}
-        onClose={() => setPickerVisible(false)}
+        visible={step === 'duration'}
+        onClose={() => setStep('idle')}
         onStart={(minutes) => {
-          setPickerVisible(false);
-          startSession(minutes);
+          setStep('idle');
+          if (selectedItemId) startSession(minutes, selectedItemId);
         }}
       />
     </TankBackdrop>

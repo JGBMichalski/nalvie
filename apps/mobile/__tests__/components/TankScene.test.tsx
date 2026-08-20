@@ -4,7 +4,7 @@ import type { TankItem } from '@nalvie/core';
 import { TankScene } from '../../components/TankScene';
 
 function item(id: string, name: string): TankItem {
-  return { id, name, rarity: 'common', unlockedAt: '2024-01-01T00:00:00.000Z' };
+  return { id, speciesId: id, name, rarity: 'common', unlockedAt: '2024-01-01T00:00:00.000Z' };
 }
 
 function layout(width: number, height: number) {

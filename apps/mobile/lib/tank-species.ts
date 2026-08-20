@@ -146,6 +146,21 @@ const PROFILES: Record<string, Partial<SpeciesProfile>> = {
   },
 };
 
-export function speciesProfile(itemId: string): SpeciesProfile {
-  return { ...DEFAULT, ...PROFILES[itemId] };
+export function speciesProfile(id: string): SpeciesProfile {
+  return { ...DEFAULT, ...PROFILES[speciesIdFromAgentId(id)] };
+}
+
+const AGENT_ID_SEPARATOR = '::';
+
+/**
+ * Combines a species id with a unique per-instance id, so two agents of the
+ * same species (multiple fish of one type in the tank) get distinct
+ * simulation seeds without losing their species' movement profile.
+ */
+export function agentId(speciesId: string, instanceId: string): string {
+  return `${speciesId}${AGENT_ID_SEPARATOR}${instanceId}`;
+}
+
+function speciesIdFromAgentId(id: string): string {
+  return id.split(AGENT_ID_SEPARATOR)[0];
 }

@@ -5,12 +5,12 @@ import {
   completeSession,
   computeStreak,
   createSession,
+  eligiblePoolItems,
   elapsedMs,
   failSession,
   finalizeInterruptedSession,
   hasUsedPause,
   isSessionComplete,
-  pickReward,
   unlockPoolItemToTankItem,
   type FocusSession,
   type SessionRepository,
@@ -73,21 +73,17 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
 
   const finishComplete = useCallback(
     async (current: FocusSession) => {
-      const itemId = pickReward(UNLOCK_POOL, unlockedItems, {
-        completedSessions: completedSessions + 1,
-        streak,
-      });
-      const item = unlockPoolItemToTankItem(UNLOCK_POOL, itemId, new Date().toISOString());
+      const item = unlockPoolItemToTankItem(UNLOCK_POOL, current.selectedItemId, current.id, new Date().toISOString());
 
       await repository.saveTankItem(item);
-      await repository.saveSession(completeSession(current, itemId));
+      await repository.saveSession(completeSession(current));
       setSession(null);
       setToastMessage(`Unlocked: ${item.name}!`);
       setPhase('toast-complete');
       await refreshFromRepository();
       setTimeout(() => setPhase('idle'), TOAST_DURATION_MS);
     },
-    [repository, unlockedItems, completedSessions, streak, refreshFromRepository],
+    [repository, refreshFromRepository],
   );
 
   // Countdown + completion check, while in-progress and not paused
@@ -120,8 +116,8 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
   );
 
   const startSession = useCallback(
-    async (minutes: number) => {
-      const created = createSession(createId(), minutes);
+    async (minutes: number, selectedItemId: string) => {
+      const created = createSession(createId(), minutes, selectedItemId);
       await repository.saveSession(created);
       setSession(created);
       setRemainingMs(minutes * 60_000);
@@ -152,7 +148,9 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     isPaused,
     hasUsedPause: session ? hasUsedPause(session) : false,
     unlockedItems,
+    completedSessions,
     streak,
+    eligibleItems: eligiblePoolItems(UNLOCK_POOL, { completedSessions, streak }),
     toastMessage,
     startSession,
     togglePause,

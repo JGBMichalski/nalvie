@@ -9,12 +9,15 @@ describe('<HomeScreen />', () => {
     resetSessionRepositoryForTests();
   });
 
-  it('opens the duration picker from the FAB, then starts a session showing a countdown', async () => {
+  it('opens the fish picker from the FAB, then the duration picker, then starts a session showing a countdown', async () => {
     renderRouter('./app', { initialUrl: '/' });
     await act(async () => {}); // flush mount-time repository load
 
     fireEvent.press(await screen.findByLabelText('Start a session'));
-    expect(screen.getByText('Start a session')).toBeTruthy(); // sheet title
+    expect(screen.getByText('Choose a fish')).toBeTruthy();
+
+    fireEvent.press(screen.getByText('Clownfish'));
+    expect(screen.getByText('Start a session')).toBeTruthy(); // duration sheet title
 
     fireEvent.press(screen.getByText('Start'));
     await act(async () => {}); // flush startSession's repository write
@@ -28,6 +31,7 @@ describe('<HomeScreen />', () => {
     await act(async () => {});
 
     fireEvent.press(await screen.findByLabelText('Start a session'));
+    fireEvent.press(screen.getByText('Clownfish'));
     fireEvent.press(screen.getByText('Start'));
     await act(async () => {}); // flush startSession's repository write
 
@@ -38,11 +42,12 @@ describe('<HomeScreen />', () => {
     expect(screen.getByText('Pause used')).toBeTruthy();
   });
 
-  it('shows an unlock toast when the session completes, then returns to idle', async () => {
+  it('shows an unlock toast for the chosen fish when the session completes, then returns to idle', async () => {
     renderRouter('./app', { initialUrl: '/' });
     await act(async () => {});
 
     fireEvent.press(await screen.findByLabelText('Start a session'));
+    fireEvent.press(screen.getByText('Clownfish'));
     fireEvent.press(screen.getByText('Start'));
     await act(async () => {}); // flush startSession's repository write
 
@@ -51,7 +56,7 @@ describe('<HomeScreen />', () => {
       await Promise.resolve();
     });
 
-    expect(screen.getByText(/Unlocked:/)).toBeTruthy();
+    expect(screen.getByText('Unlocked: Clownfish!')).toBeTruthy();
 
     await act(async () => {
       jest.advanceTimersByTime(3000);
