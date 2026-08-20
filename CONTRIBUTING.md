@@ -36,6 +36,13 @@ This is a pnpm + Turborepo monorepo:
 - Keep `packages/core` free of platform-specific imports (no `react-native`, `expo-*`, or DOM APIs).
 - Small, focused PRs are easier to review than large ones — if you're planning something big, consider opening an issue first to discuss the approach.
 
+## Testing
+
+`packages/core` and `apps/mobile` use different test runners, since they test different things:
+
+- **`packages/core`** uses [Vitest](https://vitest.dev/). Tests are plain input/output assertions against pure functions (no rendering, no native modules) — see `packages/core/src/*.test.ts` for examples. Run with `pnpm --filter @nalvie/core test`, or a single file with `pnpm --filter @nalvie/core exec vitest run src/stats.test.ts`.
+- **`apps/mobile`** uses [Jest](https://jestjs.io/) via the [`jest-expo`](https://docs.expo.dev/develop/unit-testing/) preset, plus [`@testing-library/react-native`](https://callstack.github.io/react-native-testing-library/) for rendering components and [`expo-router/testing-library`](https://docs.expo.dev/router/reference/testing/) for testing file-based navigation. Tests live under `apps/mobile/__tests__/` (not inside `app/`, which expo-router treats as routes). Run with `pnpm --filter @nalvie/mobile test`, or a single file with `pnpm --filter @nalvie/mobile exec jest __tests__/navigation.test.tsx`.
+
 ## Code style
 
 - TypeScript everywhere, `strict` mode on.
