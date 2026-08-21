@@ -29,6 +29,7 @@ export function FishPickerSheet({
           keyExtractor={(item) => item.id}
           numColumns={3}
           columnWrapperStyle={styles.row}
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <Pressable style={styles.item} onPress={() => onSelect(item.id)}>
               <View style={styles.stage}>
