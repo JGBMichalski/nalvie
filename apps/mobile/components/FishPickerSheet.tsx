@@ -1,4 +1,5 @@
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { UnlockPoolItem } from '@nalvie/core';
 
 import { TankItemVisual } from './TankItemVisual';
@@ -20,7 +21,7 @@ export function FishPickerSheet({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} testID="fish-picker-backdrop" />
-      <View style={styles.sheet}>
+      <SafeAreaView edges={['bottom']} style={styles.sheet}>
         <Text style={styles.title}>Choose a fish</Text>
 
         <FlatList
@@ -37,7 +38,7 @@ export function FishPickerSheet({
             </Pressable>
           )}
         />
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }

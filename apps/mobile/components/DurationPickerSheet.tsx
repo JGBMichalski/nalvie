@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Slider from '@react-native-community/slider';
 import { MIN_SESSION_MINUTES, SESSION_PRESET_MINUTES } from '@nalvie/core';
 
@@ -21,7 +22,7 @@ export function DurationPickerSheet({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} testID="duration-picker-backdrop" />
-      <View style={styles.sheet}>
+      <SafeAreaView edges={['bottom']} style={styles.sheet}>
         <Text style={styles.title}>Start a session</Text>
 
         <View style={styles.presets}>
@@ -58,7 +59,7 @@ export function DurationPickerSheet({
             <Text style={styles.devButtonText}>10s (dev)</Text>
           </Pressable>
         )}
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
