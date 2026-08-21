@@ -52,6 +52,7 @@ describe('settings row mapping', () => {
     soundEnabled: true,
     darkModeOverride: null,
     notificationsEnabled: false,
+    hasCompletedOnboarding: false,
   };
 
   it('round-trips settings, always keyed to the fixed row id', () => {

@@ -85,9 +85,16 @@ export function createSqliteSettingsRepository(): SettingsRepository {
       const row = settingsToRow(settings);
       await getDatabase().runAsync(
         `INSERT OR REPLACE INTO settings
-          (id, default_session_minutes, sound_enabled, dark_mode_override, notifications_enabled)
-         VALUES (?, ?, ?, ?, ?)`,
-        [row.id, row.default_session_minutes, row.sound_enabled, row.dark_mode_override, row.notifications_enabled],
+          (id, default_session_minutes, sound_enabled, dark_mode_override, notifications_enabled, has_completed_onboarding)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          row.id,
+          row.default_session_minutes,
+          row.sound_enabled,
+          row.dark_mode_override,
+          row.notifications_enabled,
+          row.has_completed_onboarding,
+        ],
       );
     },
   };

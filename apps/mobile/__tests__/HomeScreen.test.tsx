@@ -2,11 +2,13 @@ import { act, fireEvent } from '@testing-library/react-native';
 import { renderRouter, screen } from 'expo-router/testing-library';
 import { MIN_SESSION_MINUTES } from '@nalvie/core';
 
-import { resetSessionRepositoryForTests } from '../lib/repository';
+import { resetSessionRepositoryForTests, settingsRepository } from '../lib/repository';
+import { DEFAULT_SETTINGS } from '../lib/default-settings';
 
 describe('<HomeScreen />', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     resetSessionRepositoryForTests();
+    await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, hasCompletedOnboarding: true });
   });
 
   it('opens the fish picker from the FAB, then the duration picker, then starts a session showing a countdown', async () => {

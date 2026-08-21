@@ -41,7 +41,18 @@ function migrate(database: SQLite.SQLiteDatabase): void {
       default_session_minutes REAL NOT NULL,
       sound_enabled INTEGER NOT NULL,
       dark_mode_override INTEGER,
-      notifications_enabled INTEGER NOT NULL
+      notifications_enabled INTEGER NOT NULL,
+      has_completed_onboarding INTEGER NOT NULL DEFAULT 0
     );
+  `);
+}
+
+// Dev-only "clear database" action: wipes every row but keeps the schema,
+// so the app behaves like a fresh install without needing a reinstall.
+export function clearDatabase(): void {
+  getDatabase().execSync(`
+    DELETE FROM sessions;
+    DELETE FROM tank_items;
+    DELETE FROM settings;
   `);
 }

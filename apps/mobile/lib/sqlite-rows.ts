@@ -79,6 +79,7 @@ export interface SettingsRow {
   sound_enabled: number;
   dark_mode_override: number | null; // 0/1, NULL = follow system
   notifications_enabled: number;
+  has_completed_onboarding: number;
 }
 
 export function settingsToRow(settings: Settings): SettingsRow {
@@ -88,6 +89,7 @@ export function settingsToRow(settings: Settings): SettingsRow {
     sound_enabled: settings.soundEnabled ? 1 : 0,
     dark_mode_override: settings.darkModeOverride === null ? null : settings.darkModeOverride ? 1 : 0,
     notifications_enabled: settings.notificationsEnabled ? 1 : 0,
+    has_completed_onboarding: settings.hasCompletedOnboarding ? 1 : 0,
   };
 }
 
@@ -97,5 +99,6 @@ export function rowToSettings(row: SettingsRow): Settings {
     soundEnabled: row.sound_enabled === 1,
     darkModeOverride: row.dark_mode_override === null ? null : row.dark_mode_override === 1,
     notificationsEnabled: row.notifications_enabled === 1,
+    hasCompletedOnboarding: row.has_completed_onboarding === 1,
   };
 }

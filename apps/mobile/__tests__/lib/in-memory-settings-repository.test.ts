@@ -16,6 +16,7 @@ describe('createInMemorySettingsRepository', () => {
       soundEnabled: false,
       darkModeOverride: true,
       notificationsEnabled: true,
+      hasCompletedOnboarding: true,
     };
 
     await repo.saveSettings(settings);

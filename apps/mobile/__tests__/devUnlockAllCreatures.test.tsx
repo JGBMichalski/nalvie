@@ -2,11 +2,13 @@ import { renderRouter, screen } from 'expo-router/testing-library';
 import { act, fireEvent } from '@testing-library/react-native';
 import { UNLOCK_POOL } from '@nalvie/core';
 
-import { resetSessionRepositoryForTests, sessionRepository } from '../lib/repository';
+import { resetSessionRepositoryForTests, sessionRepository, settingsRepository } from '../lib/repository';
+import { DEFAULT_SETTINGS } from '../lib/default-settings';
 
 describe('dev "unlock all creatures" menu action', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     resetSessionRepositoryForTests();
+    await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, hasCompletedOnboarding: true });
   });
 
   it('unlocks every pool item and returns to a Home screen that reflects it', async () => {

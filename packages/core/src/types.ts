@@ -40,6 +40,7 @@ export interface Settings {
   soundEnabled: boolean;
   darkModeOverride: boolean | null; // null = follow system, true = dark, false = light
   notificationsEnabled: boolean;
+  hasCompletedOnboarding: boolean; // gates the first-launch intro flow
 }
 
 // Pure state a session/tank screen can be in.

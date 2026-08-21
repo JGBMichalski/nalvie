@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { UNLOCK_POOL, unlockPoolItemToTankItem } from '@nalvie/core';
 
 import { GlassPanel } from '../components/GlassPanel';
-import { sessionRepository } from '../lib/repository';
+import { clearAllData, sessionRepository } from '../lib/repository';
 import { theme } from '../theme';
 
 export default function MenuScreen() {
@@ -18,6 +18,13 @@ export default function MenuScreen() {
       ),
     );
     router.back();
+  }
+
+  // Wipes sessions/tank items/settings back to a fresh-install state, then
+  // routes to onboarding.
+  function clearDatabase() {
+    clearAllData();
+    router.replace('/onboarding');
   }
 
   return (
@@ -49,6 +56,11 @@ export default function MenuScreen() {
             <Pressable onPress={unlockAllCreatures}>
               <GlassPanel style={styles.item}>
                 <Text style={styles.itemText}>Unlock all creatures (dev)</Text>
+              </GlassPanel>
+            </Pressable>
+            <Pressable onPress={clearDatabase}>
+              <GlassPanel style={styles.item}>
+                <Text style={styles.itemText}>Clear database (dev)</Text>
               </GlassPanel>
             </Pressable>
           </>

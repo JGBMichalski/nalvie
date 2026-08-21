@@ -5,4 +5,5 @@ export const DEFAULT_SETTINGS: Settings = {
   soundEnabled: true,
   darkModeOverride: null, // follow system
   notificationsEnabled: false, // opt-in, not assumed
+  hasCompletedOnboarding: false,
 };

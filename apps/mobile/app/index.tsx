@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Link, useFocusEffect } from 'expo-router';
+import { Link, router, useFocusEffect } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DurationPickerSheet } from '../components/DurationPickerSheet';
@@ -10,7 +10,7 @@ import { PlayIcon } from '../components/PlayIcon';
 import { TankBackdrop } from '../components/TankBackdrop';
 import { TankScene } from '../components/TankScene';
 import { useSessionLoop } from '../hooks/useSessionLoop';
-import { sessionRepository } from '../lib/repository';
+import { sessionRepository, settingsRepository } from '../lib/repository';
 import { theme } from '../theme';
 
 function formatRemaining(ms: number): string {
@@ -25,6 +25,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<'idle' | 'fish' | 'duration'>('idle');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [onboardingGateResolved, setOnboardingGateResolved] = useState(false);
   const {
     phase,
     session,
@@ -40,6 +41,17 @@ export default function HomeScreen() {
     refresh,
   } = useSessionLoop(sessionRepository);
 
+  // Redirect to the intro before this screen ever renders its content.
+  useEffect(() => {
+    settingsRepository.getSettings().then((settings) => {
+      if (settings.hasCompletedOnboarding) {
+        setOnboardingGateResolved(true);
+      } else {
+        router.replace('/onboarding');
+      }
+    });
+  }, []);
+
   // Picks up changes made elsewhere (e.g. the dev "unlock all creatures"
   // menu action) whenever this screen comes back into focus.
   useFocusEffect(
@@ -49,6 +61,10 @@ export default function HomeScreen() {
   );
 
   const pauseLabel = isPaused ? 'Resume' : hasUsedPause ? 'Pause used' : 'Pause';
+
+  if (!onboardingGateResolved) {
+    return <TankBackdrop>{null}</TankBackdrop>;
+  }
 
   return (
     <TankBackdrop>

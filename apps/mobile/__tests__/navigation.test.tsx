@@ -1,19 +1,23 @@
 import { renderRouter, screen } from 'expo-router/testing-library';
 import { act, fireEvent } from '@testing-library/react-native';
 
-import { resetSessionRepositoryForTests } from '../lib/repository';
+import { resetSessionRepositoryForTests, settingsRepository } from '../lib/repository';
+import { DEFAULT_SETTINGS } from '../lib/default-settings';
 
 // Integration test over the real app/ directory
 describe('navigation shell', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     resetSessionRepositoryForTests();
+    // These tests exercise the app past first launch — onboarding is covered
+    // separately in OnboardingScreen.test.tsx / HomeOnboardingGate.test.tsx.
+    await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, hasCompletedOnboarding: true });
   });
 
   it('starts on Home/Tank', async () => {
     renderRouter('./app', { initialUrl: '/' });
 
-    expect(screen).toHavePathname('/');
     expect(await screen.findByText(/streak/)).toBeTruthy();
+    expect(screen).toHavePathname('/');
   });
 
   it('opens the menu from Home, then reaches Stats and Settings from it', async () => {
