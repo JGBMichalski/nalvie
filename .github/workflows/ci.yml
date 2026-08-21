@@ -32,3 +32,52 @@ jobs:
 
       - name: Build
         run: pnpm turbo run build
+
+  android-artifacts:
+    name: Build Android (dev + production)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build core (mobile consumes its dist/ output, not live source)
+        run: pnpm --filter @nalvie/core build
+
+      - name: Generate the native Android project
+        run: pnpm --filter @nalvie/mobile exec expo prebuild --platform android --no-install
+
+      # TODO: Keystore will need to be configured
+      - name: Assemble debug (dev) and release (production) APKs
+        working-directory: apps/mobile/android
+        run: ./gradlew assembleDebug assembleRelease
+
+      - name: Upload dev APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: nalvie-dev
+          path: apps/mobile/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Upload production APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: nalvie-production
+          path: apps/mobile/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error

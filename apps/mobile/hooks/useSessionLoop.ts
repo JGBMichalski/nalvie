@@ -19,6 +19,14 @@ import {
 } from '@nalvie/core';
 
 import { useLeaveDetection, type AppStateLike } from './useLeaveDetection';
+import {
+  cancelAllPendingSessionNotifications,
+  cancelCompletedNotification,
+  cancelFailedNotification,
+  cancelSessionNotifications,
+  scheduleCompletedNotification,
+  scheduleFailedNotification,
+} from '../lib/session-notifications';
 
 export type SessionPhase = 'idle' | 'in-progress' | 'toast-complete' | 'toast-failed';
 
@@ -51,14 +59,19 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     setStreak(computeStreak(sessions));
   }, [repository]);
 
-  // On mount: a session left in-progress by a force-quit is finalized as
-  // failed before we trust any derived stats.
+  // A session left in-progress by a force-quit is finalized as failed
+  // before we trust any derived stats. Any notification scheduled for that
+  // session can't be cancelled by id after a relaunch, so purge everything
+  // scheduled rather than leave a stale one behind.
   useEffect(() => {
-    finalizeInterruptedSession(repository).then(refreshFromRepository);
+    finalizeInterruptedSession(repository)
+      .then(cancelAllPendingSessionNotifications)
+      .then(refreshFromRepository);
   }, [repository, refreshFromRepository]);
 
   const finishFail = useCallback(
     async (current: FocusSession) => {
+      await cancelSessionNotifications();
       await repository.saveSession(failSession(current));
       setSession(null);
       setIsPaused(false);
@@ -75,6 +88,7 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     async (current: FocusSession) => {
       const item = unlockPoolItemToTankItem(UNLOCK_POOL, current.selectedItemId, current.id, new Date().toISOString());
 
+      await cancelSessionNotifications();
       await repository.saveTankItem(item);
       await repository.saveSession(completeSession(current));
       setSession(null);
@@ -113,6 +127,11 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
       if (session) finishFail(session);
     },
     appState,
+    // Notify only if still backgrounded when the grace period expires.
+    (backgrounded) => {
+      if (backgrounded) scheduleFailedNotification();
+      else cancelFailedNotification();
+    },
   );
 
   const startSession = useCallback(
@@ -123,6 +142,7 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
       setRemainingMs(minutes * 60_000);
       setIsPaused(false);
       setPhase('in-progress');
+      await scheduleCompletedNotification(created);
     },
     [repository],
   );
@@ -133,11 +153,15 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     if (isPaused) {
       const pauseDurationMs = pauseStartedAtRef.current ? Date.now() - pauseStartedAtRef.current : 0;
       pauseStartedAtRef.current = null;
-      setSession(applyPause(session, pauseDurationMs));
+      const resumed = applyPause(session, pauseDurationMs);
+      setSession(resumed);
       setIsPaused(false);
+      void scheduleCompletedNotification(resumed);
     } else if (!hasUsedPause(session)) {
       pauseStartedAtRef.current = Date.now();
       setIsPaused(true);
+      // Paused time doesn't count toward completion
+      void cancelCompletedNotification();
     }
   }, [session, isPaused]);
 

@@ -60,4 +60,35 @@ describe('useLeaveDetection', () => {
 
     expect(onGraceExpired).not.toHaveBeenCalled();
   });
+
+  it('reports backgrounding transitions via onBackgroundChange, regardless of grace expiry', () => {
+    const onGraceExpired = jest.fn();
+    const onBackgroundChange = jest.fn();
+    const appState = makeFakeAppState();
+    renderHook(() => useLeaveDetection(true, onGraceExpired, appState as never, onBackgroundChange));
+
+    appState.emit('background');
+    expect(onBackgroundChange).toHaveBeenLastCalledWith(true);
+
+    jest.advanceTimersByTime(GRACE_PERIOD_MS - 1000); // returns within the grace period
+    appState.emit('active');
+    expect(onBackgroundChange).toHaveBeenLastCalledWith(false);
+    expect(onGraceExpired).not.toHaveBeenCalled();
+  });
+
+  it('calls onBackgroundChange(false) when detection is disabled while backgrounded', () => {
+    const onGraceExpired = jest.fn();
+    const onBackgroundChange = jest.fn();
+    const appState = makeFakeAppState();
+    const { rerender } = renderHook<void, { enabled: boolean }>(
+      ({ enabled }) => useLeaveDetection(enabled, onGraceExpired, appState as never, onBackgroundChange),
+      { initialProps: { enabled: true } },
+    );
+
+    appState.emit('background');
+    expect(onBackgroundChange).toHaveBeenLastCalledWith(true);
+
+    rerender({ enabled: false }); // e.g. the user paused
+    expect(onBackgroundChange).toHaveBeenLastCalledWith(false);
+  });
 });

@@ -7,6 +7,10 @@ import { resetSettingsRepositoryForTests, settingsRepository } from '../lib/repo
 jest.mock('expo-notifications', () => ({
   getPermissionsAsync: jest.fn(),
   requestPermissionsAsync: jest.fn(),
+  scheduleNotificationAsync: jest.fn(),
+  cancelScheduledNotificationAsync: jest.fn(),
+  cancelAllScheduledNotificationsAsync: jest.fn(),
+  SchedulableTriggerInputTypes: { DATE: 'date' },
 }));
 
 describe('<SettingsScreen />', () => {
