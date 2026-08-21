@@ -2,7 +2,7 @@ import { act, fireEvent } from '@testing-library/react-native';
 import { renderRouter, screen } from 'expo-router/testing-library';
 import { MIN_SESSION_MINUTES } from '@nalvie/core';
 
-import { resetSessionRepositoryForTests } from '../lib/session-repository';
+import { resetSessionRepositoryForTests } from '../lib/repository';
 
 describe('<HomeScreen />', () => {
   beforeEach(() => {

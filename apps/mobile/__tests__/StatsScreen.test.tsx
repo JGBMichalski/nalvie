@@ -2,7 +2,7 @@ import { act } from '@testing-library/react-native';
 import { renderRouter, screen } from 'expo-router/testing-library';
 import type { FocusSession } from '@nalvie/core';
 
-import { resetSessionRepositoryForTests, sessionRepository } from '../lib/session-repository';
+import { resetSessionRepositoryForTests, sessionRepository } from '../lib/repository';
 
 function completedSession(startedAt: string, plannedDurationMinutes: number, id: string): FocusSession {
   return {

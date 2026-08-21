@@ -10,7 +10,7 @@ import { PlayIcon } from '../components/PlayIcon';
 import { TankBackdrop } from '../components/TankBackdrop';
 import { TankScene } from '../components/TankScene';
 import { useSessionLoop } from '../hooks/useSessionLoop';
-import { sessionRepository } from '../lib/session-repository';
+import { sessionRepository } from '../lib/repository';
 import { theme } from '../theme';
 
 function formatRemaining(ms: number): string {

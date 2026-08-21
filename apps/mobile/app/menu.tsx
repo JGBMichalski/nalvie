@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { UNLOCK_POOL, unlockPoolItemToTankItem } from '@nalvie/core';
 
 import { GlassPanel } from '../components/GlassPanel';
-import { sessionRepository } from '../lib/session-repository';
+import { sessionRepository } from '../lib/repository';
 import { theme } from '../theme';
 
 export default function MenuScreen() {

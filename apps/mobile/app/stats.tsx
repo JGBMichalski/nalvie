@@ -7,7 +7,7 @@ import { computeDailyStats, computeStreak, type FocusSession } from '@nalvie/cor
 import { GlassPanel } from '../components/GlassPanel';
 import { Heatmap } from '../components/Heatmap';
 import { TankBackdrop } from '../components/TankBackdrop';
-import { sessionRepository } from '../lib/session-repository';
+import { sessionRepository } from '../lib/repository';
 import { buildHeatmapDays, formatFocusDuration, isStreakAtRisk } from '../lib/stats-view';
 import { theme } from '../theme';
 

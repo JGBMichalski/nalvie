@@ -2,7 +2,7 @@ import { renderRouter, screen } from 'expo-router/testing-library';
 import { act, fireEvent } from '@testing-library/react-native';
 import { UNLOCK_POOL } from '@nalvie/core';
 
-import { resetSessionRepositoryForTests, sessionRepository } from '../lib/session-repository';
+import { resetSessionRepositoryForTests, sessionRepository } from '../lib/repository';
 
 describe('dev "unlock all creatures" menu action', () => {
   beforeEach(() => {

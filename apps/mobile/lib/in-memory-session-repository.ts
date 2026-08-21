@@ -1,8 +1,6 @@
 import type { FocusSession, SessionRepository, TankItem } from '@nalvie/core';
 
-// In-memory placeholder implementation of SessionRepository. Swap for an
-// expo-sqlite-backed one once a durable-storage ticket lands — everything
-// that consumes SessionRepository doesn't need to change when that happens.
+// In-memory implementation of SessionRepository, used only in tests
 export function createInMemorySessionRepository(): SessionRepository {
   const sessions = new Map<string, FocusSession>();
   const tankItems = new Map<string, TankItem>();

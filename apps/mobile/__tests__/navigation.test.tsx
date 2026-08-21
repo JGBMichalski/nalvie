@@ -1,9 +1,14 @@
 import { renderRouter, screen } from 'expo-router/testing-library';
 import { act, fireEvent } from '@testing-library/react-native';
 
-// Integration test over the real app/ directory: exercises the navigation
-// (no tab bar — menu icon on Home routes to a modal linking to Stats/Settings).
+import { resetSessionRepositoryForTests } from '../lib/repository';
+
+// Integration test over the real app/ directory
 describe('navigation shell', () => {
+  beforeEach(() => {
+    resetSessionRepositoryForTests();
+  });
+
   it('starts on Home/Tank', async () => {
     renderRouter('./app', { initialUrl: '/' });
 
