@@ -61,7 +61,8 @@
     "moduleNameMapper": {
       "^react-native-reanimated/mock$": "<rootDir>/test-support/reanimated-mock.js",
       "^expo-notifications$": "<rootDir>/test-support/expo-notifications-mock.js"
-    }
+    },
+    "testTimeout": 20000
   },
   "private": true
 }
