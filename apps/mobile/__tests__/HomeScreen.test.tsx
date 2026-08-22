@@ -44,7 +44,7 @@ describe('<HomeScreen />', () => {
     expect(screen.getByText('Pause used')).toBeTruthy();
   });
 
-  it('shows an unlock toast for the chosen fish when the session completes, then returns to idle', async () => {
+  it('shows a toast for the chosen fish when the session completes, then returns to idle', async () => {
     renderRouter('./app', { initialUrl: '/' });
     await act(async () => {});
 
@@ -58,7 +58,7 @@ describe('<HomeScreen />', () => {
       await Promise.resolve();
     });
 
-    expect(screen.getByText('Unlocked: Clownfish!')).toBeTruthy();
+    expect(screen.getByText('A Clownfish has joined your tank!')).toBeTruthy();
 
     await act(async () => {
       jest.advanceTimersByTime(3000);

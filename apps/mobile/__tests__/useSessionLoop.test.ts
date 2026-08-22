@@ -56,7 +56,7 @@ describe('useSessionLoop', () => {
     });
 
     expect(result.current.phase).toBe('toast-complete');
-    expect(result.current.toastMessage).toMatch(/Unlocked:/);
+    expect(result.current.toastMessage).toBe('A Clownfish has joined your tank!');
     expect(result.current.session).toBeNull();
     expect(await repo.listTankItems()).toHaveLength(1);
 
@@ -95,6 +95,51 @@ describe('useSessionLoop', () => {
     expect(items).toHaveLength(2);
     expect(items.every((item) => item.speciesId === 'clownfish')).toBe(true);
     expect(new Set(items.map((item) => item.id)).size).toBe(2); // distinct instance ids
+  });
+
+  it('says a species "joined your tank" (not "unlocked") for a repeat of an already-owned species', async () => {
+    const repo = createInMemorySessionRepository();
+    const { result } = renderHook(() => useSessionLoop(repo));
+    await act(async () => {});
+
+    await act(async () => {
+      await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(MIN_SESSION_MINUTES * 60_000 + 1000);
+      await Promise.resolve();
+    });
+    expect(result.current.toastMessage).toBe('A Clownfish has joined your tank!');
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+
+    await act(async () => {
+      await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(MIN_SESSION_MINUTES * 60_000 + 1000);
+      await Promise.resolve();
+    });
+
+    expect(result.current.toastMessage).toBe('Another Clownfish joined your tank!');
+    expect(result.current.toastMessage).not.toMatch(/Unlocked/);
+  });
+
+  it('reserves "Unlocked" for the first time a streak-gated rare species is awarded', async () => {
+    const repo = createInMemorySessionRepository();
+    const { result } = renderHook(() => useSessionLoop(repo));
+    await act(async () => {});
+
+    await act(async () => {
+      await result.current.startSession(MIN_SESSION_MINUTES, 'sea-turtle');
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(MIN_SESSION_MINUTES * 60_000 + 1000);
+      await Promise.resolve();
+    });
+
+    expect(result.current.toastMessage).toBe('Unlocked: Sea Turtle!');
   });
 
   it('does not complete the session while paused, even past the planned duration', async () => {

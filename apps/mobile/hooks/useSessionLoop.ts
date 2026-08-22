@@ -87,17 +87,27 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
   const finishComplete = useCallback(
     async (current: FocusSession) => {
       const item = unlockPoolItemToTankItem(UNLOCK_POOL, current.selectedItemId, current.id, new Date().toISOString());
+      const isFreshUnlock = !unlockedItems.some((existing) => existing.speciesId === item.speciesId);
+      const poolItem = UNLOCK_POOL.find((poolEntry) => poolEntry.id === item.speciesId);
+      const isStreakUnlock =
+        isFreshUnlock && typeof poolItem?.eligibility === 'object' && 'minStreakDays' in poolItem.eligibility;
 
       await cancelSessionNotifications();
       await repository.saveTankItem(item);
       await repository.saveSession(completeSession(current));
       setSession(null);
-      setToastMessage(`Unlocked: ${item.name}!`);
+      setToastMessage(
+        isStreakUnlock
+          ? `Unlocked: ${item.name}!`
+          : isFreshUnlock
+            ? `A ${item.name} has joined your tank!`
+            : `Another ${item.name} joined your tank!`,
+      );
       setPhase('toast-complete');
       await refreshFromRepository();
       setTimeout(() => setPhase('idle'), TOAST_DURATION_MS);
     },
-    [repository, refreshFromRepository],
+    [repository, refreshFromRepository, unlockedItems],
   );
 
   // Countdown + completion check, while in-progress and not paused
