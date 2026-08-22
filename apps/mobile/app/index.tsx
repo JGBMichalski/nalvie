@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Link, router, useFocusEffect } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { UNLOCK_POOL } from '@nalvie/core';
 
 import { DurationPickerSheet } from '../components/DurationPickerSheet';
 import { FishPickerSheet } from '../components/FishPickerSheet';
@@ -124,7 +125,9 @@ export default function HomeScreen() {
 
       <FishPickerSheet
         visible={step === 'fish'}
-        items={eligibleItems}
+        items={UNLOCK_POOL}
+        eligibleItemIds={new Set(eligibleItems.map((item) => item.id))}
+        ownedSpeciesIds={new Set(unlockedItems.map((item) => item.speciesId))}
         onClose={() => setStep('idle')}
         onSelect={(itemId) => {
           setSelectedItemId(itemId);

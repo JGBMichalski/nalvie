@@ -51,6 +51,20 @@ export function eligiblePoolItems(
 }
 
 /**
+ * Human-readable explanation of what it takes to unlock an item, for
+ * display alongside a locked item in the fish picker. Empty for items
+ * that are always eligible (nothing to explain).
+ */
+export function unlockRequirementLabel(item: UnlockPoolItem): string {
+  if (item.eligibility === "always") return "";
+  if ("minCompletedSessions" in item.eligibility) {
+    const count = item.eligibility.minCompletedSessions;
+    return `Complete ${count} session${count === 1 ? "" : "s"} to unlock`;
+  }
+  return `Reach a ${item.eligibility.minStreakDays}-day streak to unlock`;
+}
+
+/**
  * Builds the `TankItem` record for a chosen (or, previously, randomly
  * rewarded) item id. `instanceId` must be unique per unlock, even for repeat
  * instances of the same species.

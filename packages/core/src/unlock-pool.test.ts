@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { UNLOCK_POOL, eligiblePoolItems, unlockPoolItemToTankItem } from "./unlock-pool.js";
+import { UNLOCK_POOL, eligiblePoolItems, unlockPoolItemToTankItem, unlockRequirementLabel } from "./unlock-pool.js";
 
 function stats(overrides: Partial<{ completedSessions: number; streak: { current: number; longest: number } }> = {}) {
   return {
@@ -44,6 +44,38 @@ describe("eligiblePoolItems", () => {
   it("includes rare items once the streak gate is met", () => {
     const items = eligiblePoolItems(fullPool, stats({ completedSessions: 5, streak: { current: 7, longest: 7 } }));
     expect(items.map((i) => i.id)).toEqual(["c1", "u1", "r1"]);
+  });
+});
+
+describe("unlockRequirementLabel", () => {
+  it("has no requirement text for an always-eligible item", () => {
+    expect(unlockRequirementLabel({ id: "c1", name: "Common", rarity: "common", eligibility: "always" })).toBe("");
+  });
+
+  it("describes a session-count gate, pluralized", () => {
+    expect(
+      unlockRequirementLabel({
+        id: "u1",
+        name: "Uncommon",
+        rarity: "uncommon",
+        eligibility: { minCompletedSessions: 5 },
+      }),
+    ).toBe("Complete 5 sessions to unlock");
+
+    expect(
+      unlockRequirementLabel({
+        id: "u2",
+        name: "Uncommon 2",
+        rarity: "uncommon",
+        eligibility: { minCompletedSessions: 1 },
+      }),
+    ).toBe("Complete 1 session to unlock");
+  });
+
+  it("describes a streak gate", () => {
+    expect(
+      unlockRequirementLabel({ id: "r1", name: "Rare", rarity: "rare", eligibility: { minStreakDays: 7 } }),
+    ).toBe("Reach a 7-day streak to unlock");
   });
 });
 
