@@ -10,11 +10,11 @@ function stats(overrides: Partial<{ completedSessions: number; streak: { current
 }
 
 describe("UNLOCK_POOL", () => {
-  it("currently has 9 active items (5 common / 3 uncommon / 1 rare) — seabed items are commented out", () => {
+  it("currently has 9 active items (3 common / 4 uncommon / 2 rare) — seabed items are commented out", () => {
     expect(UNLOCK_POOL).toHaveLength(9);
-    expect(UNLOCK_POOL.filter((i) => i.rarity === "common")).toHaveLength(5);
-    expect(UNLOCK_POOL.filter((i) => i.rarity === "uncommon")).toHaveLength(3);
-    expect(UNLOCK_POOL.filter((i) => i.rarity === "rare")).toHaveLength(1);
+    expect(UNLOCK_POOL.filter((i) => i.rarity === "common")).toHaveLength(3);
+    expect(UNLOCK_POOL.filter((i) => i.rarity === "uncommon")).toHaveLength(4);
+    expect(UNLOCK_POOL.filter((i) => i.rarity === "rare")).toHaveLength(2);
   });
 
   it("has unique ids", () => {
