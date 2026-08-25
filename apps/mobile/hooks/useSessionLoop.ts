@@ -49,6 +49,7 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [remainingMs, setRemainingMs] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isSessionMuted, setIsSessionMuted] = useState(false);
 
   const pauseStartedAtRef = useRef<number | null>(null);
 
@@ -151,6 +152,7 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
       setSession(created);
       setRemainingMs(minutes * 60_000);
       setIsPaused(false);
+      setIsSessionMuted(false);
       setPhase('in-progress');
       await scheduleCompletedNotification(created);
     },
@@ -175,11 +177,18 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     }
   }, [session, isPaused]);
 
+  // Per-session-only: does not touch Settings.soundEnabled. The next
+  // session starts unmuted again.
+  const toggleSessionMute = useCallback(() => {
+    setIsSessionMuted((muted) => !muted);
+  }, []);
+
   return {
     phase,
     session,
     remainingMs,
     isPaused,
+    isSessionMuted,
     hasUsedPause: session ? hasUsedPause(session) : false,
     unlockedItems,
     completedSessions,
@@ -188,6 +197,7 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     toastMessage,
     startSession,
     togglePause,
+    toggleSessionMute,
     refresh: refreshFromRepository,
   };
 }

@@ -66,4 +66,34 @@ describe('<HomeScreen />', () => {
 
     expect(screen.getByLabelText('Start a session')).toBeTruthy(); // FAB is back
   });
+
+  it('shows a Mute button during a session when sound is enabled, and it toggles', async () => {
+    await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, hasCompletedOnboarding: true, soundEnabled: true });
+    renderRouter('./app', { initialUrl: '/' });
+    await act(async () => {});
+
+    fireEvent.press(await screen.findByLabelText('Start a session'));
+    fireEvent.press(screen.getByText('Clownfish'));
+    fireEvent.press(screen.getByText('Start'));
+    await act(async () => {}); // flush startSession's repository write
+
+    fireEvent.press(screen.getByText('Mute'));
+    expect(screen.getByText('Unmute')).toBeTruthy();
+
+    fireEvent.press(screen.getByText('Unmute'));
+    expect(screen.getByText('Mute')).toBeTruthy();
+  });
+
+  it('does not show a Mute button when sound is disabled in Settings', async () => {
+    await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, hasCompletedOnboarding: true, soundEnabled: false });
+    renderRouter('./app', { initialUrl: '/' });
+    await act(async () => {});
+
+    fireEvent.press(await screen.findByLabelText('Start a session'));
+    fireEvent.press(screen.getByText('Clownfish'));
+    fireEvent.press(screen.getByText('Start'));
+    await act(async () => {}); // flush startSession's repository write
+
+    expect(screen.queryByText('Mute')).toBeNull();
+  });
 });

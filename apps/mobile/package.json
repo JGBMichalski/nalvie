@@ -7,6 +7,7 @@
     "@nalvie/core": "workspace:*",
     "@react-native-community/slider": "5.2.0",
     "expo": "~57.0.14",
+    "expo-audio": "~57.0.4",
     "expo-constants": "~57.0.12",
     "expo-dev-client": "~57.0.13",
     "expo-linear-gradient": "~57.0.1",
@@ -60,7 +61,8 @@
     ],
     "moduleNameMapper": {
       "^react-native-reanimated/mock$": "<rootDir>/test-support/reanimated-mock.js",
-      "^expo-notifications$": "<rootDir>/test-support/expo-notifications-mock.js"
+      "^expo-notifications$": "<rootDir>/test-support/expo-notifications-mock.js",
+      "^expo-audio$": "<rootDir>/test-support/expo-audio-mock.js"
     },
     "testTimeout": 20000
   },

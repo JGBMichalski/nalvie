@@ -10,6 +10,7 @@ import { GlassPanel } from '../components/GlassPanel';
 import { PlayIcon } from '../components/PlayIcon';
 import { TankBackdrop } from '../components/TankBackdrop';
 import { TankScene } from '../components/TankScene';
+import { useAmbientSound } from '../hooks/useAmbientSound';
 import { useSessionLoop } from '../hooks/useSessionLoop';
 import { sessionRepository, settingsRepository } from '../lib/repository';
 import { theme } from '../theme';
@@ -27,11 +28,13 @@ export default function HomeScreen() {
   const [step, setStep] = useState<'idle' | 'fish' | 'duration'>('idle');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [onboardingGateResolved, setOnboardingGateResolved] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const {
     phase,
     session,
     remainingMs,
     isPaused,
+    isSessionMuted,
     hasUsedPause,
     unlockedItems,
     eligibleItems,
@@ -39,6 +42,7 @@ export default function HomeScreen() {
     toastMessage,
     startSession,
     togglePause,
+    toggleSessionMute,
     refresh,
   } = useSessionLoop(sessionRepository);
 
@@ -54,12 +58,18 @@ export default function HomeScreen() {
   }, []);
 
   // Picks up changes made elsewhere (e.g. the dev "unlock all creatures"
-  // menu action) whenever this screen comes back into focus.
+  // menu action, or a Settings change) whenever this screen comes back into focus.
   useFocusEffect(
     useCallback(() => {
       refresh();
+      settingsRepository.getSettings().then((settings) => setSoundEnabled(settings.soundEnabled));
     }, [refresh]),
   );
+
+  // Ambience plays only while actively focusing — not paused or session-muted
+  // Resets to the start of the loop once the session actually resolves.
+  const ambienceShouldPlay = phase === 'in-progress' && !isPaused && !isSessionMuted && soundEnabled;
+  useAmbientSound(ambienceShouldPlay, phase !== 'in-progress');
 
   const pauseLabel = isPaused ? 'Resume' : hasUsedPause ? 'Pause used' : 'Pause';
 
@@ -93,16 +103,25 @@ export default function HomeScreen() {
             <GlassPanel style={styles.timerPanel}>
               <Text style={styles.timerText}>{formatRemaining(remainingMs)}</Text>
             </GlassPanel>
-            <Pressable onPress={togglePause} disabled={hasUsedPause && !isPaused}>
-              <GlassPanel
-                style={StyleSheet.flatten([
-                  styles.pausePanel,
-                  hasUsedPause && !isPaused && styles.pausePanelDisabled,
-                ])}
-              >
-                <Text style={styles.pauseText}>{pauseLabel}</Text>
-              </GlassPanel>
-            </Pressable>
+            <View style={styles.sessionButtons}>
+              <Pressable onPress={togglePause} disabled={hasUsedPause && !isPaused}>
+                <GlassPanel
+                  style={StyleSheet.flatten([
+                    styles.pausePanel,
+                    hasUsedPause && !isPaused && styles.pausePanelDisabled,
+                  ])}
+                >
+                  <Text style={styles.pauseText}>{pauseLabel}</Text>
+                </GlassPanel>
+              </Pressable>
+              {soundEnabled && (
+                <Pressable onPress={toggleSessionMute} accessibilityLabel="Toggle ambient sound">
+                  <GlassPanel style={styles.pausePanel}>
+                    <Text style={styles.pauseText}>{isSessionMuted ? 'Unmute' : 'Mute'}</Text>
+                  </GlassPanel>
+                </Pressable>
+              )}
+            </View>
           </View>
         )}
 
@@ -198,6 +217,10 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     fontSize: 32,
     fontWeight: '200',
+  },
+  sessionButtons: {
+    flexDirection: 'row',
+    gap: 12,
   },
   pausePanel: {
     alignItems: 'center',

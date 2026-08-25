@@ -354,4 +354,57 @@ describe('useSessionLoop', () => {
       expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('session-scoped ambience mute (Ticket 09)', () => {
+    it('starts unmuted', async () => {
+      const repo = createInMemorySessionRepository();
+      const { result } = renderHook(() => useSessionLoop(repo));
+      await act(async () => {});
+
+      expect(result.current.isSessionMuted).toBe(false);
+    });
+
+    it('toggles on and off', async () => {
+      const repo = createInMemorySessionRepository();
+      const { result } = renderHook(() => useSessionLoop(repo));
+      await act(async () => {});
+
+      await act(async () => {
+        await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+      });
+
+      act(() => result.current.toggleSessionMute());
+      expect(result.current.isSessionMuted).toBe(true);
+
+      act(() => result.current.toggleSessionMute());
+      expect(result.current.isSessionMuted).toBe(false);
+    });
+
+    it('resets to unmuted for a new session, even if the previous one ended muted', async () => {
+      const repo = createInMemorySessionRepository();
+      const { result } = renderHook(() => useSessionLoop(repo));
+      await act(async () => {});
+
+      await act(async () => {
+        await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+      });
+      act(() => result.current.toggleSessionMute());
+      expect(result.current.isSessionMuted).toBe(true);
+
+      await act(async () => {
+        jest.advanceTimersByTime(MIN_SESSION_MINUTES * 60_000 + 1000);
+        await Promise.resolve();
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(3000);
+      });
+      expect(result.current.phase).toBe('idle');
+
+      await act(async () => {
+        await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+      });
+
+      expect(result.current.isSessionMuted).toBe(false);
+    });
+  });
 });

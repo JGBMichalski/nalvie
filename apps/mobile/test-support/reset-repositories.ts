@@ -3,8 +3,10 @@
 // resetXForTests() would hit real expo-sqlite, which throws under
 // jest-expo's native-module mock.
 import { resetSessionRepositoryForTests, resetSettingsRepositoryForTests } from '../lib/repository';
+import { __resetAudioMocks } from './expo-audio-mock';
 
 beforeEach(() => {
   resetSessionRepositoryForTests();
   resetSettingsRepositoryForTests();
+  __resetAudioMocks();
 });
