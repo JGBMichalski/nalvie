@@ -1,6 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet } from 'react-native';
-import Svg, { Defs, Ellipse, LinearGradient, Path, Stop } from 'react-native-svg';
+import Svg, {
+  ClipPath,
+  Defs,
+  Ellipse,
+  G,
+  LinearGradient,
+  Path,
+  RadialGradient,
+  Stop,
+} from 'react-native-svg';
 
 import { useOscillation } from '../hooks/useOscillation';
 
@@ -10,6 +19,19 @@ const BELL =
 
 const WIDTH = 56;
 const HEIGHT = 80;
+
+// Painterly palette: airbrushed radial volume plus a bioluminescent glow —
+// no hard outlines anywhere.
+const BELL_LIGHT = '#fbe7ff';
+const BELL_MID = '#a78bfa';
+const BELL_DEEP = '#5b47c4';
+const UNDER_SHADE = '#3b2d86';
+const SHEEN = '#fdf1ff';
+const RIM = '#f0dcff';
+const GLOW = '#8be5f7';
+const TENT_VIOLET = '#c4b5fd';
+const TENT_CYAN = '#a5f3fc';
+const TENT_PINK = '#f5d0fe';
 
 // Jet propulsion is asymmetric: a jellyfish squeezes its bell in a short, sharp
 // contraction that fires it forward, then spends far longer refilling while it
@@ -114,13 +136,35 @@ export function Jellyfish({ size = 72 }: { size?: number }) {
         ]}
       >
         <Svg width={size} height={height} viewBox="0 0 56 80">
-          <Path d="M 15 31 C 12 44, 18 52, 14 64 C 12 70, 14 74, 16 77" stroke="#c4b5fd" strokeWidth={2.2} fill="none" strokeLinecap="round" opacity={0.75} />
-          <Path d="M 24 33 C 22 46, 27 56, 23 70 C 22 74, 23 77, 25 79" stroke="#a5f3fc" strokeWidth={2.4} fill="none" strokeLinecap="round" opacity={0.8} />
-          <Path d="M 33 33 C 35 46, 30 56, 34 70 C 35 74, 34 77, 32 79" stroke="#c4b5fd" strokeWidth={2.4} fill="none" strokeLinecap="round" opacity={0.8} />
-          <Path d="M 42 31 C 45 44, 39 52, 43 64 C 45 70, 43 74, 41 77" stroke="#a5f3fc" strokeWidth={2.2} fill="none" strokeLinecap="round" opacity={0.75} />
+          <Defs>
+            {/* Tentacles trail off into transparency rather than ending. */}
+            <LinearGradient id="jellyfish-tent-violet" x1="0" y1="0.35" x2="0" y2="1">
+              <Stop offset="0" stopColor={TENT_VIOLET} stopOpacity={0.8} />
+              <Stop offset="0.65" stopColor={TENT_VIOLET} stopOpacity={0.4} />
+              <Stop offset="1" stopColor={TENT_VIOLET} stopOpacity={0} />
+            </LinearGradient>
+            <LinearGradient id="jellyfish-tent-cyan" x1="0" y1="0.35" x2="0" y2="1">
+              <Stop offset="0" stopColor={TENT_CYAN} stopOpacity={0.85} />
+              <Stop offset="0.65" stopColor={TENT_CYAN} stopOpacity={0.45} />
+              <Stop offset="1" stopColor={TENT_CYAN} stopOpacity={0} />
+            </LinearGradient>
+            <LinearGradient id="jellyfish-tent-pink" x1="0" y1="0.35" x2="0" y2="0.75">
+              <Stop offset="0" stopColor={TENT_PINK} stopOpacity={0.75} />
+              <Stop offset="1" stopColor={TENT_PINK} stopOpacity={0} />
+            </LinearGradient>
+          </Defs>
+          {/* Wide faint understroke beneath each tentacle feathers its edge. */}
+          <Path d="M 15 31 C 12 44, 18 52, 14 64 C 12 70, 14 74, 16 77" stroke="url(#jellyfish-tent-violet)" strokeWidth={4.4} fill="none" strokeLinecap="round" opacity={0.28} />
+          <Path d="M 24 33 C 22 46, 27 56, 23 70 C 22 74, 23 77, 25 79" stroke="url(#jellyfish-tent-cyan)" strokeWidth={4.8} fill="none" strokeLinecap="round" opacity={0.28} />
+          <Path d="M 33 33 C 35 46, 30 56, 34 70 C 35 74, 34 77, 32 79" stroke="url(#jellyfish-tent-violet)" strokeWidth={4.8} fill="none" strokeLinecap="round" opacity={0.28} />
+          <Path d="M 42 31 C 45 44, 39 52, 43 64 C 45 70, 43 74, 41 77" stroke="url(#jellyfish-tent-cyan)" strokeWidth={4.4} fill="none" strokeLinecap="round" opacity={0.28} />
+          <Path d="M 15 31 C 12 44, 18 52, 14 64 C 12 70, 14 74, 16 77" stroke="url(#jellyfish-tent-violet)" strokeWidth={2.2} fill="none" strokeLinecap="round" />
+          <Path d="M 24 33 C 22 46, 27 56, 23 70 C 22 74, 23 77, 25 79" stroke="url(#jellyfish-tent-cyan)" strokeWidth={2.4} fill="none" strokeLinecap="round" />
+          <Path d="M 33 33 C 35 46, 30 56, 34 70 C 35 74, 34 77, 32 79" stroke="url(#jellyfish-tent-violet)" strokeWidth={2.4} fill="none" strokeLinecap="round" />
+          <Path d="M 42 31 C 45 44, 39 52, 43 64 C 45 70, 43 74, 41 77" stroke="url(#jellyfish-tent-cyan)" strokeWidth={2.2} fill="none" strokeLinecap="round" />
           {/* Short frilly oral arms under the bell. */}
-          <Path d="M 20 31 C 19 38, 22 42, 20 48" stroke="#f5d0fe" strokeWidth={1.6} fill="none" strokeLinecap="round" opacity={0.7} />
-          <Path d="M 37 31 C 38 38, 35 42, 37 48" stroke="#f5d0fe" strokeWidth={1.6} fill="none" strokeLinecap="round" opacity={0.7} />
+          <Path d="M 20 31 C 19 38, 22 42, 20 48" stroke="url(#jellyfish-tent-pink)" strokeWidth={1.8} fill="none" strokeLinecap="round" />
+          <Path d="M 37 31 C 38 38, 35 42, 37 48" stroke="url(#jellyfish-tent-pink)" strokeWidth={1.8} fill="none" strokeLinecap="round" />
         </Svg>
       </Animated.View>
 
@@ -133,24 +177,65 @@ export function Jellyfish({ size = 72 }: { size?: number }) {
       >
         <Svg width={size} height={height} viewBox="0 0 56 80">
           <Defs>
-            <LinearGradient id="jellyfish-bell" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor="#f5d0fe" stopOpacity={0.95} />
-              <Stop offset="0.6" stopColor="#a78bfa" stopOpacity={0.75} />
-              <Stop offset="1" stopColor="#67e8f9" stopOpacity={0.55} />
+            <ClipPath id="jellyfish-bell-clip">
+              <Path d={BELL} />
+            </ClipPath>
+            {/* Light source upper-left: bright core rolling into deep shadow. */}
+            <RadialGradient id="jellyfish-bell" cx="38%" cy="22%" r="80%">
+              <Stop offset="0" stopColor={BELL_LIGHT} stopOpacity={0.95} />
+              <Stop offset="0.5" stopColor={BELL_MID} stopOpacity={0.8} />
+              <Stop offset="1" stopColor={BELL_DEEP} stopOpacity={0.6} />
+            </RadialGradient>
+            {/* Counter-shading: the bell margin sinks into shadow. */}
+            <LinearGradient id="jellyfish-under" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0.55" stopColor={UNDER_SHADE} stopOpacity={0} />
+              <Stop offset="1" stopColor={UNDER_SHADE} stopOpacity={0.45} />
             </LinearGradient>
+            <RadialGradient id="jellyfish-sheen" cx="38%" cy="20%" r="42%">
+              <Stop offset="0" stopColor={SHEEN} stopOpacity={0.8} />
+              <Stop offset="1" stopColor={SHEEN} stopOpacity={0} />
+            </RadialGradient>
+            {/* Bioluminescent halo — the jellyfish reads as its own light source. */}
+            <RadialGradient id="jellyfish-halo" cx="50%" cy="50%" r="50%">
+              <Stop offset="0.45" stopColor={GLOW} stopOpacity={0.38} />
+              <Stop offset="0.75" stopColor={GLOW} stopOpacity={0.16} />
+              <Stop offset="1" stopColor={GLOW} stopOpacity={0} />
+            </RadialGradient>
+            {/* Inner glow shining up through the translucent bell. */}
+            <RadialGradient id="jellyfish-core" cx="50%" cy="72%" r="55%">
+              <Stop offset="0" stopColor={GLOW} stopOpacity={0.5} />
+              <Stop offset="1" stopColor={GLOW} stopOpacity={0} />
+            </RadialGradient>
           </Defs>
 
-          <Path d={BELL} fill="url(#jellyfish-bell)" stroke="#ddd6fe" strokeWidth={1.6} strokeLinejoin="round" />
-          {/* Inner bell markings. */}
-          <Ellipse cx={28} cy={20} rx={13} ry={9} fill="none" stroke="#f8fafc" strokeWidth={1.2} opacity={0.5} />
-          <Ellipse cx={22} cy={14} rx={4} ry={3} fill="#ffffff" opacity={0.5} />
+          {/* Layered halo glow, scaled about the bell centre (28, 17.5). */}
+          <Path d={BELL} fill="url(#jellyfish-halo)" transform="translate(28 17.5) scale(1.25) translate(-28 -17.5)" />
+          <Path d={BELL} fill={GLOW} opacity={0.15} transform="translate(28 17.5) scale(1.1) translate(-28 -17.5)" />
+
+          <Path d={BELL} fill="url(#jellyfish-bell)" />
+          <G clipPath="url(#jellyfish-bell-clip)">
+            <Path d={BELL} fill="url(#jellyfish-under)" />
+            <Path d={BELL} fill="url(#jellyfish-core)" />
+            {/* Feathered bell ribs: wide-and-faint under narrow-and-bright. */}
+            <Ellipse cx={28} cy={20} rx={13} ry={9} fill="none" stroke={SHEEN} strokeWidth={3.4} opacity={0.16} />
+            <Ellipse cx={28} cy={20} rx={13} ry={9} fill="none" stroke={SHEEN} strokeWidth={1.4} opacity={0.45} />
+            <Path d={BELL} fill="url(#jellyfish-sheen)" />
+            {/* Rim light tracing the lit upper-left edge. */}
+            <Path d="M 5 27 C 6 13, 16 4.5, 28 4" stroke={RIM} strokeWidth={2.2} fill="none" opacity={0.55} strokeLinecap="round" />
+          </G>
         </Svg>
       </Animated.View>
 
-      {/* Bioluminescent halo, brightest at full contraction. */}
+      {/* Bioluminescent pulse, brightest at full contraction. */}
       <Animated.View style={[styles.part, { opacity: glow }]}>
         <Svg width={size} height={height} viewBox="0 0 56 80">
-          <Path d={BELL} fill="none" stroke="#e9d5ff" strokeWidth={5} strokeLinejoin="round" opacity={0.35} />
+          <Defs>
+            <RadialGradient id="jellyfish-pulse" cx="50%" cy="50%" r="50%">
+              <Stop offset="0.4" stopColor={GLOW} stopOpacity={0.4} />
+              <Stop offset="1" stopColor={GLOW} stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Path d={BELL} fill="url(#jellyfish-pulse)" transform="translate(28 17.5) scale(1.18) translate(-28 -17.5)" />
         </Svg>
       </Animated.View>
     </Animated.View>
