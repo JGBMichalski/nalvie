@@ -2,12 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Link, router, useFocusEffect } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { UNLOCK_POOL } from '@nalvie/core';
 
 import { DurationPickerSheet } from '../components/DurationPickerSheet';
 import { FishPickerSheet } from '../components/FishPickerSheet';
 import { GlassPanel } from '../components/GlassPanel';
-import { PlayIcon } from '../components/PlayIcon';
+import { MenuPopover } from '../components/MenuPopover';
 import { TankBackdrop } from '../components/TankBackdrop';
 import { TankScene } from '../components/TankScene';
 import { useAmbientSound, toAmbientSource, type AmbientSource } from '../hooks/useAmbientSound';
@@ -28,6 +29,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<'idle' | 'fish' | 'duration'>('idle');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [onboardingGateResolved, setOnboardingGateResolved] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [ambientSource, setAmbientSource] = useState<AmbientSource>({ type: 'local' });
@@ -93,15 +95,16 @@ export default function HomeScreen() {
 
         <TankScene items={unlockedItems} />
 
-        <Link href="/menu" asChild>
+        {__DEV__ && (
           <Pressable
             style={StyleSheet.flatten([styles.menuButton, { top: insets.top + 20 }])}
             hitSlop={8}
             accessibilityLabel="Open menu"
+            onPress={() => setMenuOpen(true)}
           >
             <Text style={styles.menuIcon}>☰</Text>
           </Pressable>
-        </Link>
+        )}
 
         {phase === 'in-progress' && session && (
           <View style={StyleSheet.flatten([styles.sessionChrome, { bottom: insets.bottom + 28 }])}>
@@ -145,8 +148,30 @@ export default function HomeScreen() {
             accessibilityLabel="Start a session"
             onPress={() => setStep('fish')}
           >
-            <PlayIcon size={30} color={theme.colors.fabIcon} />
+            <Ionicons name="play" size={30} color={theme.colors.fabIcon} style={styles.playIcon} />
           </Pressable>
+        )}
+
+        {phase === 'idle' && (
+          <Link href="/stats" asChild>
+            <Pressable
+              style={StyleSheet.flatten([styles.sideButton, styles.sideButtonLeft, { bottom: insets.bottom + 40 }])}
+              accessibilityLabel="Stats"
+            >
+              <Ionicons name="stats-chart" size={22} color={theme.colors.textPrimary} />
+            </Pressable>
+          </Link>
+        )}
+
+        {phase === 'idle' && (
+          <Link href="/settings" asChild>
+            <Pressable
+              style={StyleSheet.flatten([styles.sideButton, styles.sideButtonRight, { bottom: insets.bottom + 40 }])}
+              accessibilityLabel="Settings"
+            >
+              <Ionicons name="settings-sharp" size={22} color={theme.colors.textPrimary} />
+            </Pressable>
+          </Link>
         )}
       </SafeAreaView>
 
@@ -170,6 +195,14 @@ export default function HomeScreen() {
           if (selectedItemId) startSession(minutes, selectedItemId);
         }}
       />
+      {__DEV__ && (
+        <MenuPopover
+          visible={menuOpen}
+          topOffset={insets.top + 20}
+          onClose={() => setMenuOpen(false)}
+          onDataChanged={refresh}
+        />
+      )}
     </TankBackdrop>
   );
 }
@@ -211,6 +244,26 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.fabBackground,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  sideButton: {
+    position: 'absolute',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: theme.colors.glassBackground,
+    borderColor: theme.colors.glassBorder,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sideButtonLeft: {
+    left: 32,
+  },
+  sideButtonRight: {
+    right: 32,
+  },
+  playIcon: {
+    marginLeft: 3, // optical centering — the glyph's visual weight leans left
   },
   sessionChrome: {
     position: 'absolute',

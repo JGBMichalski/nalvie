@@ -155,4 +155,25 @@ describe('<HomeScreen />', () => {
 
     expect(screen.queryByText(/SomaFM/)).toBeNull();
   });
+
+  it('shows Stats and Settings buttons flanking the FAB while idle', async () => {
+    renderRouter('./app', { initialUrl: '/' });
+    await act(async () => {});
+
+    expect(await screen.findByLabelText('Stats')).toBeTruthy();
+    expect(screen.getByLabelText('Settings')).toBeTruthy();
+  });
+
+  it('hides Stats and Settings buttons during a session', async () => {
+    renderRouter('./app', { initialUrl: '/' });
+    await act(async () => {});
+
+    fireEvent.press(await screen.findByLabelText('Start a session'));
+    fireEvent.press(screen.getByText('Clownfish'));
+    fireEvent.press(screen.getByText('Start'));
+    await act(async () => {}); // flush startSession's repository write
+
+    expect(screen.queryByLabelText('Stats')).toBeNull();
+    expect(screen.queryByLabelText('Settings')).toBeNull();
+  });
 });

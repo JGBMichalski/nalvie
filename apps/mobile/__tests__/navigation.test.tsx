@@ -20,14 +20,20 @@ describe('navigation shell', () => {
     expect(screen).toHavePathname('/');
   });
 
-  it('opens the menu from Home, then reaches Stats and Settings from it', async () => {
+  it('reaches Stats and Settings from their bottom buttons on Home', async () => {
+    renderRouter('./app', { initialUrl: '/' });
+
+    fireEvent.press(await screen.findByLabelText('Stats'));
+    expect(screen).toHavePathname('/stats');
+    await act(async () => {}); // flush Stats' repository load
+  });
+
+  it('opens the dev menu popover from Home without changing route', async () => {
     renderRouter('./app', { initialUrl: '/' });
 
     fireEvent.press(await screen.findByLabelText('Open menu'));
-    expect(screen).toHavePathname('/menu');
 
-    fireEvent.press(await screen.findByText('Stats'));
-    expect(screen).toHavePathname('/stats');
-    await act(async () => {}); // flush Stats' repository load
+    expect(screen).toHavePathname('/'); // pops out over Home rather than navigating
+    expect(await screen.findByText('Unlock all creatures (dev)')).toBeTruthy();
   });
 });
