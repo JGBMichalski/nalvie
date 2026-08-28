@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SESSION_PRESET_MINUTES, type Settings } from '@nalvie/core';
 
 import { GlassPanel } from '../components/GlassPanel';
+import { BackButton } from '../components/BackButton';
 import { PickerSheet } from '../components/PickerSheet';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { SelectField } from '../components/SelectField';
@@ -66,7 +67,10 @@ export default function SettingsScreen() {
   return (
     <TankBackdrop>
       <SafeAreaView edges={['top', 'bottom']} style={styles.container}>
-        <Text style={styles.title}>Settings</Text>
+        <View style={styles.headerRow}>
+          <BackButton />
+          <Text style={styles.title}>Settings</Text>
+        </View>
 
         <GlassPanel style={styles.row}>
           <Text style={styles.label}>Default session length</Text>
@@ -146,6 +150,11 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     fontSize: 22,
     fontWeight: '600',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   row: {
     gap: 10,

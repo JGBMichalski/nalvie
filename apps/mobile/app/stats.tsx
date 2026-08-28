@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { computeDailyStats, computeStreak, type FocusSession } from '@nalvie/core';
 
 import { GlassPanel } from '../components/GlassPanel';
+import { BackButton } from '../components/BackButton';
 import { Heatmap } from '../components/Heatmap';
 import { TankBackdrop } from '../components/TankBackdrop';
 import { sessionRepository } from '../lib/repository';
@@ -50,7 +51,10 @@ export default function StatsScreen() {
   return (
     <TankBackdrop>
       <SafeAreaView edges={['top', 'bottom']} style={styles.container}>
-        <Text style={styles.title}>Stats</Text>
+        <View style={styles.headerRow}>
+          <BackButton />
+          <Text style={styles.title}>Stats</Text>
+        </View>
 
         <GlassPanel style={styles.header}>
           <View style={styles.row}>
@@ -99,6 +103,11 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     fontSize: 22,
     fontWeight: '600',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   header: {
     gap: 4,

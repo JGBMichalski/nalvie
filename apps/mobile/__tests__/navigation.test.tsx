@@ -28,6 +28,28 @@ describe('navigation shell', () => {
     await act(async () => {}); // flush Stats' repository load
   });
 
+  it('returns to Home from Stats via its back button', async () => {
+    renderRouter('./app', { initialUrl: '/' });
+
+    fireEvent.press(await screen.findByLabelText('Stats'));
+    await act(async () => {}); // flush Stats' repository load
+
+    fireEvent.press(await screen.findByLabelText('Back'));
+    await act(async () => {}); // flush Home's refocus effect
+    expect(screen).toHavePathname('/');
+  });
+
+  it('returns to Home from Settings via its back button', async () => {
+    renderRouter('./app', { initialUrl: '/' });
+
+    fireEvent.press(await screen.findByLabelText('Settings'));
+    await act(async () => {}); // flush Settings' repository load
+
+    fireEvent.press(await screen.findByLabelText('Back'));
+    await act(async () => {}); // flush Home's refocus effect
+    expect(screen).toHavePathname('/');
+  });
+
   it('opens the dev menu popover from Home without changing route', async () => {
     renderRouter('./app', { initialUrl: '/' });
 
