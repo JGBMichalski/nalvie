@@ -23,6 +23,10 @@ pnpm turbo run build lint typecheck test
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for more details.
 
+## Credits
+
+Streaming powered by [SomaFM](https://somafm.com) — the optional in-session radio mode streams their internet radio stations, freely relayable per their [developer terms](https://somafm.com/developer/).
+
 ## License
 
 AGPL-3.0-only. See [`LICENSE`](./LICENSE).

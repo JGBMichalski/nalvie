@@ -61,6 +61,68 @@ describe('<SettingsScreen />', () => {
     expect((await settingsRepository.getSettings()).soundEnabled).toBe(false);
   });
 
+  it('shows Local selected by default, with no station field, when sound is on', async () => {
+    renderRouter('./app', { initialUrl: '/settings' });
+    await act(async () => {});
+
+    expect(await screen.findByLabelText('Local')).toBeTruthy();
+    expect(screen.getByLabelText('Local').props.accessibilityState.selected).toBe(true);
+    expect(screen.queryByLabelText('SomaFM station')).toBeNull();
+  });
+
+  it('hides the sound-source control entirely when sound is off', async () => {
+    renderRouter('./app', { initialUrl: '/settings' });
+    await act(async () => {});
+
+    fireEvent(await screen.findByLabelText('Sound'), 'valueChange', false);
+    await act(async () => {});
+
+    expect(screen.queryByLabelText('Local')).toBeNull();
+    expect(screen.queryByLabelText('SomaFM')).toBeNull();
+  });
+
+  it('persists switching the sound source to SomaFM, and reveals the station field defaulting to Groove Salad', async () => {
+    renderRouter('./app', { initialUrl: '/settings' });
+    await act(async () => {});
+
+    fireEvent.press(await screen.findByLabelText('SomaFM'));
+    await act(async () => {});
+
+    expect((await settingsRepository.getSettings()).soundSource).toBe('somafm');
+    expect(screen.getByText('Groove Salad')).toBeTruthy();
+  });
+
+  it('opens the station picker sheet and persists a station change', async () => {
+    renderRouter('./app', { initialUrl: '/settings' });
+    await act(async () => {});
+
+    fireEvent.press(await screen.findByLabelText('SomaFM'));
+    await act(async () => {});
+    fireEvent.press(screen.getByLabelText('SomaFM station'));
+    await act(async () => {});
+    fireEvent.press(screen.getByLabelText('Drone Zone'));
+    await act(async () => {});
+
+    expect((await settingsRepository.getSettings()).somafmStationId).toBe('dronezone');
+    expect(screen.getByText('Drone Zone')).toBeTruthy(); // field now shows the new selection
+  });
+
+  it('closes the station picker sheet after selecting a station', async () => {
+    renderRouter('./app', { initialUrl: '/settings' });
+    await act(async () => {});
+
+    fireEvent.press(await screen.findByLabelText('SomaFM'));
+    await act(async () => {});
+    fireEvent.press(screen.getByLabelText('SomaFM station'));
+    await act(async () => {});
+    expect(screen.getByTestId('picker-sheet-backdrop')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('Drone Zone'));
+    await act(async () => {});
+
+    expect(screen.queryByTestId('picker-sheet-backdrop')).toBeNull();
+  });
+
   it('requests OS permission when notifications are toggled on, and persists the result', async () => {
     (Notifications.requestPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
     renderRouter('./app', { initialUrl: '/settings' });

@@ -53,6 +53,8 @@ describe('settings row mapping', () => {
     darkModeOverride: null,
     notificationsEnabled: false,
     hasCompletedOnboarding: false,
+    soundSource: 'local',
+    somafmStationId: 'groovesalad',
   };
 
   it('round-trips settings, always keyed to the fixed row id', () => {
@@ -65,5 +67,10 @@ describe('settings row mapping', () => {
     expect(rowToSettings(settingsToRow({ ...settings, darkModeOverride: true })).darkModeOverride).toBe(true);
     expect(rowToSettings(settingsToRow({ ...settings, darkModeOverride: false })).darkModeOverride).toBe(false);
     expect(rowToSettings(settingsToRow({ ...settings, darkModeOverride: null })).darkModeOverride).toBeNull();
+  });
+
+  it('round-trips soundSource and somafmStationId', () => {
+    const somafm = { ...settings, soundSource: 'somafm' as const, somafmStationId: 'dronezone' };
+    expect(rowToSettings(settingsToRow(somafm))).toEqual(somafm);
   });
 });

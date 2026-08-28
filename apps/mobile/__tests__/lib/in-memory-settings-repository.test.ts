@@ -17,6 +17,8 @@ describe('createInMemorySettingsRepository', () => {
       darkModeOverride: true,
       notificationsEnabled: true,
       hasCompletedOnboarding: true,
+      soundSource: 'somafm',
+      somafmStationId: 'dronezone',
     };
 
     await repo.saveSettings(settings);

@@ -96,4 +96,63 @@ describe('<HomeScreen />', () => {
 
     expect(screen.queryByText('Mute')).toBeNull();
   });
+
+  it('shows the SomaFM station attribution during a session when that source is selected', async () => {
+    await settingsRepository.saveSettings({
+      ...DEFAULT_SETTINGS,
+      hasCompletedOnboarding: true,
+      soundEnabled: true,
+      soundSource: 'somafm',
+      somafmStationId: 'dronezone',
+    });
+    renderRouter('./app', { initialUrl: '/' });
+    await act(async () => {});
+
+    fireEvent.press(await screen.findByLabelText('Start a session'));
+    fireEvent.press(screen.getByText('Clownfish'));
+    fireEvent.press(screen.getByText('Start'));
+    await act(async () => {}); // flush startSession's repository write
+
+    expect(screen.getByText('SomaFM — Drone Zone')).toBeTruthy();
+  });
+
+  it('does not show SomaFM attribution when the local sound source is selected', async () => {
+    await settingsRepository.saveSettings({
+      ...DEFAULT_SETTINGS,
+      hasCompletedOnboarding: true,
+      soundEnabled: true,
+      soundSource: 'local',
+    });
+    renderRouter('./app', { initialUrl: '/' });
+    await act(async () => {});
+
+    fireEvent.press(await screen.findByLabelText('Start a session'));
+    fireEvent.press(screen.getByText('Clownfish'));
+    fireEvent.press(screen.getByText('Start'));
+    await act(async () => {}); // flush startSession's repository write
+
+    expect(screen.queryByText(/SomaFM/)).toBeNull();
+  });
+
+  it('hides the SomaFM attribution while the session ambience is muted', async () => {
+    await settingsRepository.saveSettings({
+      ...DEFAULT_SETTINGS,
+      hasCompletedOnboarding: true,
+      soundEnabled: true,
+      soundSource: 'somafm',
+      somafmStationId: 'dronezone',
+    });
+    renderRouter('./app', { initialUrl: '/' });
+    await act(async () => {});
+
+    fireEvent.press(await screen.findByLabelText('Start a session'));
+    fireEvent.press(screen.getByText('Clownfish'));
+    fireEvent.press(screen.getByText('Start'));
+    await act(async () => {}); // flush startSession's repository write
+    expect(screen.getByText('SomaFM — Drone Zone')).toBeTruthy();
+
+    fireEvent.press(screen.getByText('Mute'));
+
+    expect(screen.queryByText(/SomaFM/)).toBeNull();
+  });
 });

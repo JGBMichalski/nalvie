@@ -10,9 +10,10 @@ import { GlassPanel } from '../components/GlassPanel';
 import { PlayIcon } from '../components/PlayIcon';
 import { TankBackdrop } from '../components/TankBackdrop';
 import { TankScene } from '../components/TankScene';
-import { useAmbientSound } from '../hooks/useAmbientSound';
+import { useAmbientSound, toAmbientSource, type AmbientSource } from '../hooks/useAmbientSound';
 import { useSessionLoop } from '../hooks/useSessionLoop';
 import { sessionRepository, settingsRepository } from '../lib/repository';
+import { somafmStationName } from '../lib/somafm-stations';
 import { theme } from '../theme';
 
 function formatRemaining(ms: number): string {
@@ -29,6 +30,7 @@ export default function HomeScreen() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [onboardingGateResolved, setOnboardingGateResolved] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [ambientSource, setAmbientSource] = useState<AmbientSource>({ type: 'local' });
   const {
     phase,
     session,
@@ -62,14 +64,17 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       refresh();
-      settingsRepository.getSettings().then((settings) => setSoundEnabled(settings.soundEnabled));
+      settingsRepository.getSettings().then((settings) => {
+        setSoundEnabled(settings.soundEnabled);
+        setAmbientSource(toAmbientSource(settings));
+      });
     }, [refresh]),
   );
 
   // Ambience plays only while actively focusing — not paused or session-muted
   // Resets to the start of the loop once the session actually resolves.
   const ambienceShouldPlay = phase === 'in-progress' && !isPaused && !isSessionMuted && soundEnabled;
-  useAmbientSound(ambienceShouldPlay, phase !== 'in-progress');
+  useAmbientSound(ambienceShouldPlay, ambientSource, phase !== 'in-progress');
 
   const pauseLabel = isPaused ? 'Resume' : hasUsedPause ? 'Pause used' : 'Pause';
 
@@ -122,6 +127,9 @@ export default function HomeScreen() {
                 </Pressable>
               )}
             </View>
+            {ambienceShouldPlay && ambientSource.type === 'somafm' && (
+              <Text style={styles.attributionText}>SomaFM — {somafmStationName(ambientSource.stationId)}</Text>
+            )}
           </View>
         )}
 
@@ -231,6 +239,10 @@ const styles = StyleSheet.create({
   pauseText: {
     color: theme.colors.textPrimary,
     fontWeight: '600',
+  },
+  attributionText: {
+    color: theme.colors.textSecondary,
+    fontSize: 11,
   },
   toast: {
     position: 'absolute',

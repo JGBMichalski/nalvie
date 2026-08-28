@@ -80,6 +80,8 @@ export interface SettingsRow {
   dark_mode_override: number | null; // 0/1, NULL = follow system
   notifications_enabled: number;
   has_completed_onboarding: number;
+  sound_source: string; // "local" | "somafm"
+  somafm_station_id: string;
 }
 
 export function settingsToRow(settings: Settings): SettingsRow {
@@ -90,6 +92,8 @@ export function settingsToRow(settings: Settings): SettingsRow {
     dark_mode_override: settings.darkModeOverride === null ? null : settings.darkModeOverride ? 1 : 0,
     notifications_enabled: settings.notificationsEnabled ? 1 : 0,
     has_completed_onboarding: settings.hasCompletedOnboarding ? 1 : 0,
+    sound_source: settings.soundSource,
+    somafm_station_id: settings.somafmStationId,
   };
 }
 
@@ -100,5 +104,7 @@ export function rowToSettings(row: SettingsRow): Settings {
     darkModeOverride: row.dark_mode_override === null ? null : row.dark_mode_override === 1,
     notificationsEnabled: row.notifications_enabled === 1,
     hasCompletedOnboarding: row.has_completed_onboarding === 1,
+    soundSource: row.sound_source === 'somafm' ? 'somafm' : 'local',
+    somafmStationId: row.somafm_station_id,
   };
 }
