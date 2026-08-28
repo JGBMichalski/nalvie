@@ -3,6 +3,7 @@ import { GRACE_PERIOD_MS } from '@nalvie/core';
 
 import { useLeaveDetection } from '../hooks/useLeaveDetection';
 import { makeFakeAppState } from './test-utils/fake-app-state';
+import { makeFakeLockSignal } from './test-utils/fake-lock-signal';
 
 describe('useLeaveDetection', () => {
   beforeEach(() => {
@@ -90,5 +91,74 @@ describe('useLeaveDetection', () => {
 
     rerender({ enabled: false }); // e.g. the user paused
     expect(onBackgroundChange).toHaveBeenLastCalledWith(false);
+  });
+
+  describe('screen-lock gate', () => {
+    it('does not fail the session when the screen locks and stays locked past the grace period', () => {
+      const onGraceExpired = jest.fn();
+      const onGraceClockChange = jest.fn();
+      const appState = makeFakeAppState();
+      const lockSignal = makeFakeLockSignal();
+      renderHook(() =>
+        useLeaveDetection(true, onGraceExpired, appState as never, onGraceClockChange, lockSignal),
+      );
+
+      lockSignal.lock();
+      appState.emit('background');
+      expect(onGraceClockChange).not.toHaveBeenCalledWith(true); // exempt — never started
+      jest.advanceTimersByTime(GRACE_PERIOD_MS + 60_000);
+      appState.emit('active'); // still locked, returning directly — no unlock-while-backgrounded
+
+      expect(onGraceExpired).not.toHaveBeenCalled();
+    });
+
+    it('retroactively cancels the grace clock if the lock signal arrives after backgrounding', () => {
+      const onGraceExpired = jest.fn();
+      const onGraceClockChange = jest.fn();
+      const appState = makeFakeAppState();
+      const lockSignal = makeFakeLockSignal();
+      renderHook(() =>
+        useLeaveDetection(true, onGraceExpired, appState as never, onGraceClockChange, lockSignal),
+      );
+
+      appState.emit('background'); // grace clock starts (ordering isn't guaranteed)
+      expect(onGraceClockChange).toHaveBeenLastCalledWith(true);
+      lockSignal.lock(); // cancels it retroactively
+      expect(onGraceClockChange).toHaveBeenLastCalledWith(false);
+
+      jest.advanceTimersByTime(GRACE_PERIOD_MS + 60_000);
+      appState.emit('active');
+
+      expect(onGraceExpired).not.toHaveBeenCalled();
+    });
+
+    it('restarts the grace clock fresh if unlocked while still backgrounded', () => {
+      const onGraceExpired = jest.fn();
+      const appState = makeFakeAppState();
+      const lockSignal = makeFakeLockSignal();
+      renderHook(() => useLeaveDetection(true, onGraceExpired, appState as never, undefined, lockSignal));
+
+      lockSignal.lock();
+      appState.emit('background'); // exempt while locked
+      jest.advanceTimersByTime(60_000);
+      lockSignal.unlock(); // user actively did something — fresh clock starts now
+      jest.advanceTimersByTime(GRACE_PERIOD_MS + 1000);
+      appState.emit('active');
+
+      expect(onGraceExpired).toHaveBeenCalledTimes(1);
+    });
+
+    it('behaves exactly like today when the lock signal never fires (genuine app-switch, or passcode-less iOS)', () => {
+      const onGraceExpired = jest.fn();
+      const appState = makeFakeAppState();
+      const lockSignal = makeFakeLockSignal();
+      renderHook(() => useLeaveDetection(true, onGraceExpired, appState as never, undefined, lockSignal));
+
+      appState.emit('background');
+      jest.advanceTimersByTime(GRACE_PERIOD_MS + 1000);
+      appState.emit('active');
+
+      expect(onGraceExpired).toHaveBeenCalledTimes(1);
+    });
   });
 });

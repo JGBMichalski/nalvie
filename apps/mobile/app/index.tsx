@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Link, router, useFocusEffect } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -78,7 +78,21 @@ export default function HomeScreen() {
   // Ambience plays only while actively focusing — not paused or session-muted
   // Resets to the start of the loop once the session actually resolves.
   const ambienceShouldPlay = phase === 'in-progress' && !isPaused && !isSessionMuted && soundEnabled;
-  useAmbientSound(ambienceShouldPlay, ambientSource, phase !== 'in-progress');
+  // Only recomputes when remainingMinutes ticks over
+  const remainingMinutes = Math.ceil(remainingMs / 60_000);
+  const lockScreenMetadata = useMemo(
+    () => ({
+      title: isPaused ? 'Paused' : `${formatRemaining(remainingMs)} remaining`,
+      artist: 'Nalvie focus session',
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately
+    // keyed on remainingMinutes, not remainingMs, to enforce the once/minute cadence
+    [remainingMinutes, isPaused],
+  );
+  useAmbientSound(ambienceShouldPlay, ambientSource, phase !== 'in-progress', {
+    metadata: lockScreenMetadata,
+    sessionActive: phase === 'in-progress',
+  });
 
   const changeStation = useCallback(async (stationId: string) => {
     const current = await settingsRepository.getSettings();

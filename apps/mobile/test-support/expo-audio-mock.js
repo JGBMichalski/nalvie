@@ -11,6 +11,9 @@ function createFakePlayer() {
     pause: jest.fn(),
     seekTo: jest.fn(),
     remove: jest.fn(),
+    setActiveForLockScreen: jest.fn(),
+    updateLockScreenMetadata: jest.fn(),
+    clearLockScreenControls: jest.fn(),
   };
 }
 

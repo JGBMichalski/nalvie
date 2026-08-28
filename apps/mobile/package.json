@@ -13,6 +13,7 @@
     "expo-dev-client": "~57.0.13",
     "expo-linear-gradient": "~57.0.1",
     "expo-linking": "~57.0.6",
+    "expo-modules-core": "^57.0.14",
     "expo-navigation-bar": "~57.0.2",
     "expo-notifications": "~57.0.13",
     "expo-router": "~57.0.14",
@@ -39,11 +40,12 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start",
+    "start": "expo start --dev-client",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "dev": "expo start",
+    "dev": "expo start --dev-client",
+    "prebuild": "expo prebuild --clean",
     "build": "true",
     "lint": "echo \"no lint config yet\"",
     "typecheck": "tsc --noEmit",
@@ -64,7 +66,8 @@
     "moduleNameMapper": {
       "^react-native-reanimated/mock$": "<rootDir>/test-support/reanimated-mock.js",
       "^expo-notifications$": "<rootDir>/test-support/expo-notifications-mock.js",
-      "^expo-audio$": "<rootDir>/test-support/expo-audio-mock.js"
+      "^expo-audio$": "<rootDir>/test-support/expo-audio-mock.js",
+      "modules/screen-lock-signal$": "<rootDir>/test-support/screen-lock-signal-mock.js"
     },
     "testTimeout": 20000
   },

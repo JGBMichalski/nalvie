@@ -4,3 +4,7 @@
 
 expo-env.d.ts
 # @end expo-cli
+
+# Ephemeral native projects — regenerated via `pnpm prebuild`, never committed.
+/ios/
+/android/

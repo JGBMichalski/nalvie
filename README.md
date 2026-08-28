@@ -15,6 +15,8 @@ pnpm install
 pnpm --filter @nalvie/mobile dev
 ```
 
+> **Note:** the mobile app requires a custom dev client — see [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the native build step.
+
 Run everything (build, lint, typecheck, test) across the monorepo:
 
 ```sh

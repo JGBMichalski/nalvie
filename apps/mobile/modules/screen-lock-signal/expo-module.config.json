@@ -1,0 +1,9 @@
+{
+  "platforms": ["ios", "android"],
+  "ios": {
+    "modules": ["ScreenLockSignalModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.screenlocksignal.ScreenLockSignalModule"]
+  }
+}

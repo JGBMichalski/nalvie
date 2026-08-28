@@ -18,11 +18,15 @@ This is a pnpm + Turborepo monorepo:
    pnpm install
    ```
 
-3. Run the mobile app:
+3. Build and run the mobile app. This requires a **custom dev client**, not Expo Go — the app uses native modules (screen-lock detection, background audio) that Expo Go can't load:
 
    ```sh
-   pnpm --filter @nalvie/mobile dev
+   pnpm --filter @nalvie/mobile prebuild   # generates ios/ and android/, run again after native deps change
+   pnpm --filter @nalvie/mobile android    # or `ios`, builds and installs the dev client
+   pnpm --filter @nalvie/mobile dev        # subsequent runs: starts Metro against the installed dev client
    ```
+
+   `ios/` and `android/` are gitignored and regenerated on demand — never hand-edit or commit them. See `apps/mobile/eas.json` for the full toolchain rationale.
 
 4. Run everything (build, lint, typecheck, test) across the monorepo:
 

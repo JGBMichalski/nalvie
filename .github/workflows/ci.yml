@@ -81,3 +81,41 @@ jobs:
           name: nalvie-production
           path: apps/mobile/android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+
+  # ios-artifacts:
+  #   name: Build iOS (dev client, simulator)
+  #   runs-on: macos-15
+  #   needs: build
+  #   steps:
+  #     - uses: actions/checkout@v7
+
+  #     - uses: pnpm/action-setup@v6
+
+  #     - uses: actions/setup-node@v7
+  #       with:
+  #         node-version-file: ".nvmrc"
+  #         cache: "pnpm"
+
+  #     - name: Install dependencies
+  #       run: pnpm install --frozen-lockfile
+
+  #     - name: Build core (mobile consumes its dist/ output, not live source)
+  #       run: pnpm --filter @nalvie/core build
+
+  #     - name: Generate the native iOS project
+  #       run: pnpm --filter @nalvie/mobile exec expo prebuild --platform ios --no-install
+
+  #     - name: Install CocoaPods
+  #       working-directory: apps/mobile/ios
+  #       run: pod install
+
+  #     # Simulator build only — device builds need signing (see
+  #     # .scratch/screen-lock-safe-sessions/plans/devclient-eas-migration-plan.md's
+  #     # HITL checklist for Apple Developer signing setup).
+  #     - name: Build for simulator
+  #       working-directory: apps/mobile/ios
+  #       run: |
+  #         xcodebuild -workspace Nalvie.xcworkspace -scheme Nalvie \
+  #           -configuration Debug -sdk iphonesimulator \
+  #           -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+

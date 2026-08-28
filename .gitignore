@@ -157,6 +157,10 @@ expo-env.d.ts
 *.orig.*
 android/
 ios/
+# ...except local Expo Modules' checked-in native source (not generated
+# prebuild output) — see apps/mobile/modules/*/{ios,android}.
+!apps/mobile/modules/**/ios/
+!apps/mobile/modules/**/android/
 
 # Turborepo
 .turbo/

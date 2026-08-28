@@ -138,9 +138,9 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
       if (session) finishFail(session);
     },
     appState,
-    // Notify only if still backgrounded when the grace period expires.
-    (backgrounded) => {
-      if (backgrounded) scheduleFailedNotification();
+    // Notify only when the grace clock is actually running
+    (graceClockRunning) => {
+      if (graceClockRunning) scheduleFailedNotification();
       else cancelFailedNotification();
     },
   );

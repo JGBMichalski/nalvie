@@ -1,0 +1,8 @@
+{
+  "name": "screen-lock-signal",
+  "version": "1.0.0",
+  "description": "Local Expo Module: detects device screen lock/unlock (see .scratch/screen-lock-safe-sessions/spec.md).",
+  "main": "index.ts",
+  "types": "index.ts",
+  "license": "AGPL-3.0-only"
+}
