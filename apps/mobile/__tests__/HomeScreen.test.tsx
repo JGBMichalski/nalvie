@@ -113,7 +113,7 @@ describe('<HomeScreen />', () => {
     fireEvent.press(screen.getByText('Start'));
     await act(async () => {}); // flush startSession's repository write
 
-    expect(screen.getByText('SomaFM — Drone Zone')).toBeTruthy();
+    expect(screen.getByText(/SomaFM — Drone Zone/)).toBeTruthy();
   });
 
   it('does not show SomaFM attribution when the local sound source is selected', async () => {
@@ -149,7 +149,7 @@ describe('<HomeScreen />', () => {
     fireEvent.press(screen.getByText('Clownfish'));
     fireEvent.press(screen.getByText('Start'));
     await act(async () => {}); // flush startSession's repository write
-    expect(screen.getByText('SomaFM — Drone Zone')).toBeTruthy();
+    expect(screen.getByText(/SomaFM — Drone Zone/)).toBeTruthy();
 
     fireEvent.press(screen.getByText('Mute'));
 
@@ -175,5 +175,54 @@ describe('<HomeScreen />', () => {
 
     expect(screen.queryByLabelText('Stats')).toBeNull();
     expect(screen.queryByLabelText('Settings')).toBeNull();
+  });
+
+  describe('switching SomaFM station mid-session', () => {
+    beforeEach(async () => {
+      await settingsRepository.saveSettings({
+        ...DEFAULT_SETTINGS,
+        hasCompletedOnboarding: true,
+        soundEnabled: true,
+        soundSource: 'somafm',
+        somafmStationId: 'groovesalad',
+      });
+    });
+
+    it('opens a station picker from the attribution control and switches station', async () => {
+      renderRouter('./app', { initialUrl: '/' });
+      await act(async () => {});
+
+      fireEvent.press(await screen.findByLabelText('Start a session'));
+      fireEvent.press(screen.getByText('Clownfish'));
+      fireEvent.press(screen.getByText('Start'));
+      await act(async () => {}); // flush startSession's repository write
+      expect(screen.getByText(/SomaFM — Groove Salad/)).toBeTruthy();
+
+      fireEvent.press(screen.getByLabelText('Change station'));
+      await act(async () => {});
+      fireEvent.press(screen.getByLabelText('Fluid'));
+      await act(async () => {});
+
+      expect(screen.getByText(/SomaFM — Fluid/)).toBeTruthy();
+      expect((await settingsRepository.getSettings()).somafmStationId).toBe('fluid');
+    });
+
+    it('does not offer a station switch when using the local sound source', async () => {
+      await settingsRepository.saveSettings({
+        ...DEFAULT_SETTINGS,
+        hasCompletedOnboarding: true,
+        soundEnabled: true,
+        soundSource: 'local',
+      });
+      renderRouter('./app', { initialUrl: '/' });
+      await act(async () => {});
+
+      fireEvent.press(await screen.findByLabelText('Start a session'));
+      fireEvent.press(screen.getByText('Clownfish'));
+      fireEvent.press(screen.getByText('Start'));
+      await act(async () => {}); // flush startSession's repository write
+
+      expect(screen.queryByLabelText('Change station')).toBeNull();
+    });
   });
 });

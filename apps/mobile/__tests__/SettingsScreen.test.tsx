@@ -1,6 +1,7 @@
 import { act, fireEvent } from '@testing-library/react-native';
 import { renderRouter, screen, testRouter } from 'expo-router/testing-library';
 import * as Notifications from 'expo-notifications';
+import { useAudioPlayer } from 'expo-audio';
 
 import { resetSettingsRepositoryForTests, settingsRepository } from '../lib/repository';
 
@@ -20,6 +21,7 @@ describe('<SettingsScreen />', () => {
       status: 'undetermined',
       canAskAgain: true,
     });
+    (useAudioPlayer as jest.Mock).mockClear();
   });
 
   it('shows the default settings on first launch', async () => {
@@ -121,6 +123,82 @@ describe('<SettingsScreen />', () => {
     await act(async () => {});
 
     expect(screen.queryByTestId('picker-sheet-backdrop')).toBeNull();
+  });
+
+  describe('previewing a SomaFM station', () => {
+    async function switchToSomaFm() {
+      renderRouter('./app', { initialUrl: '/settings' });
+      await act(async () => {});
+      fireEvent.press(await screen.findByLabelText('SomaFM'));
+      await act(async () => {});
+    }
+
+    it('shows a Preview button once a SomaFM station is selected', async () => {
+      await switchToSomaFm();
+
+      expect(screen.getByLabelText('Preview station')).toBeTruthy();
+    });
+
+    it('plays the selected station and toggles the button to Stop preview', async () => {
+      await switchToSomaFm();
+
+      fireEvent.press(screen.getByLabelText('Preview station'));
+      await act(async () => {});
+
+      expect(screen.getByText('Stop preview')).toBeTruthy();
+      const player = (useAudioPlayer as jest.Mock).mock.results.at(-1)?.value;
+      expect(player.play).toHaveBeenCalled();
+    });
+
+    it('stops playback and reverts the button label when pressed again', async () => {
+      await switchToSomaFm();
+
+      fireEvent.press(screen.getByLabelText('Preview station'));
+      await act(async () => {});
+      const player = (useAudioPlayer as jest.Mock).mock.results.at(-1)?.value;
+
+      fireEvent.press(screen.getByText('Stop preview'));
+      await act(async () => {
+        jest.advanceTimersByTime(1000); // let the fade-out finish
+      });
+
+      expect(screen.getByText('Preview')).toBeTruthy();
+      expect(player.pause).toHaveBeenCalled();
+    });
+
+    it('switches playback to the new station when one is picked while previewing', async () => {
+      await switchToSomaFm();
+
+      fireEvent.press(screen.getByLabelText('Preview station'));
+      await act(async () => {});
+      const grooveSaladPlayer = (useAudioPlayer as jest.Mock).mock.results.at(-1)?.value;
+
+      fireEvent.press(screen.getByLabelText('SomaFM station'));
+      await act(async () => {});
+      fireEvent.press(screen.getByLabelText('Drone Zone'));
+      await act(async () => {});
+
+      const droneZonePlayer = (useAudioPlayer as jest.Mock).mock.results.at(-1)?.value;
+      expect(droneZonePlayer).not.toBe(grooveSaladPlayer);
+      expect(droneZonePlayer.play).toHaveBeenCalled();
+      expect(screen.getByText('Stop preview')).toBeTruthy(); // still previewing
+    });
+
+    it('stops the preview when Sound is turned off', async () => {
+      await switchToSomaFm();
+
+      fireEvent.press(screen.getByLabelText('Preview station'));
+      await act(async () => {});
+      expect(screen.getByText('Stop preview')).toBeTruthy();
+
+      fireEvent(screen.getByLabelText('Sound'), 'valueChange', false);
+      await act(async () => {});
+      fireEvent(screen.getByLabelText('Sound'), 'valueChange', true);
+      fireEvent.press(await screen.findByLabelText('SomaFM'));
+      await act(async () => {});
+
+      expect(screen.getByLabelText('Preview station')).toBeTruthy();
+    });
   });
 
   it('requests OS permission when notifications are toggled on, and persists the result', async () => {

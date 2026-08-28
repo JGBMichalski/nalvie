@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { SESSION_PRESET_MINUTES, type Settings } from '@nalvie/core';
 
 import { GlassPanel } from '../components/GlassPanel';
@@ -10,6 +11,7 @@ import { PickerSheet } from '../components/PickerSheet';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { SelectField } from '../components/SelectField';
 import { TankBackdrop } from '../components/TankBackdrop';
+import { useAmbientSound } from '../hooks/useAmbientSound';
 import { DEFAULT_SETTINGS } from '../lib/default-settings';
 import { hasNotificationPermission, resolveNotificationsEnabled } from '../lib/notification-permissions';
 import { settingsRepository } from '../lib/repository';
@@ -33,6 +35,15 @@ export default function SettingsScreen() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [notificationsGranted, setNotificationsGranted] = useState(false);
   const [stationPickerOpen, setStationPickerOpen] = useState(false);
+  const [previewPlaying, setPreviewPlaying] = useState(false);
+
+  // Lets a user preview a station before committing to it for a session
+  useAmbientSound(previewPlaying, { type: 'somafm', stationId: settings.somafmStationId });
+  useEffect(() => {
+    if (!settings.soundEnabled || settings.soundSource !== 'somafm') {
+      setPreviewPlaying(false);
+    }
+  }, [settings.soundEnabled, settings.soundSource]);
 
   useEffect(() => {
     settingsRepository.getSettings().then(setSettings);
@@ -104,11 +115,25 @@ export default function SettingsScreen() {
         {settings.soundEnabled && settings.soundSource === 'somafm' && (
           <GlassPanel style={[styles.row, styles.toggleRow]}>
             <Text style={styles.label}>SomaFM station</Text>
-            <SelectField
-              value={somafmStationName(settings.somafmStationId)}
-              accessibilityLabel="SomaFM station"
-              onPress={() => setStationPickerOpen(true)}
-            />
+            <View style={styles.stationControls}>
+              <SelectField
+                value={somafmStationName(settings.somafmStationId)}
+                accessibilityLabel="SomaFM station"
+                onPress={() => setStationPickerOpen(true)}
+              />
+              <Pressable
+                style={styles.previewButton}
+                onPress={() => setPreviewPlaying((playing) => !playing)}
+                accessibilityLabel="Preview station"
+              >
+                <Ionicons
+                  name={previewPlaying ? 'stop' : 'play'}
+                  size={16}
+                  color={theme.colors.textPrimary}
+                />
+                <Text style={styles.previewButtonText}>{previewPlaying ? 'Stop preview' : 'Preview'}</Text>
+              </Pressable>
+            </View>
           </GlassPanel>
         )}
 
@@ -167,5 +192,26 @@ const styles = StyleSheet.create({
   label: {
     color: theme.colors.textSecondary,
     fontSize: 14,
+  },
+  stationControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  previewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: theme.radii.glass,
+    backgroundColor: theme.colors.glassBackground,
+    borderColor: theme.colors.glassBorder,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  previewButtonText: {
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    fontSize: 13,
   },
 });

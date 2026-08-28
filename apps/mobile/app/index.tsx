@@ -9,12 +9,13 @@ import { DurationPickerSheet } from '../components/DurationPickerSheet';
 import { FishPickerSheet } from '../components/FishPickerSheet';
 import { GlassPanel } from '../components/GlassPanel';
 import { MenuPopover } from '../components/MenuPopover';
+import { PickerSheet } from '../components/PickerSheet';
 import { TankBackdrop } from '../components/TankBackdrop';
 import { TankScene } from '../components/TankScene';
 import { useAmbientSound, toAmbientSource, type AmbientSource } from '../hooks/useAmbientSound';
 import { useSessionLoop } from '../hooks/useSessionLoop';
 import { sessionRepository, settingsRepository } from '../lib/repository';
-import { somafmStationName } from '../lib/somafm-stations';
+import { SOMAFM_STATIONS, somafmStationName } from '../lib/somafm-stations';
 import { theme } from '../theme';
 
 function formatRemaining(ms: number): string {
@@ -33,6 +34,7 @@ export default function HomeScreen() {
   const [onboardingGateResolved, setOnboardingGateResolved] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [ambientSource, setAmbientSource] = useState<AmbientSource>({ type: 'local' });
+  const [sessionStationPickerOpen, setSessionStationPickerOpen] = useState(false);
   const {
     phase,
     session,
@@ -77,6 +79,13 @@ export default function HomeScreen() {
   // Resets to the start of the loop once the session actually resolves.
   const ambienceShouldPlay = phase === 'in-progress' && !isPaused && !isSessionMuted && soundEnabled;
   useAmbientSound(ambienceShouldPlay, ambientSource, phase !== 'in-progress');
+
+  const changeStation = useCallback(async (stationId: string) => {
+    const current = await settingsRepository.getSettings();
+    await settingsRepository.saveSettings({ ...current, somafmStationId: stationId });
+    setAmbientSource({ type: 'somafm', stationId });
+    setSessionStationPickerOpen(false);
+  }, []);
 
   const pauseLabel = isPaused ? 'Resume' : hasUsedPause ? 'Pause used' : 'Pause';
 
@@ -131,7 +140,11 @@ export default function HomeScreen() {
               )}
             </View>
             {ambienceShouldPlay && ambientSource.type === 'somafm' && (
-              <Text style={styles.attributionText}>SomaFM — {somafmStationName(ambientSource.stationId)}</Text>
+              <Pressable onPress={() => setSessionStationPickerOpen(true)} accessibilityLabel="Change station">
+                <Text style={styles.attributionText}>
+                  SomaFM — {somafmStationName(ambientSource.stationId)} ⌄
+                </Text>
+              </Pressable>
             )}
           </View>
         )}
@@ -201,6 +214,17 @@ export default function HomeScreen() {
           topOffset={insets.top + 20}
           onClose={() => setMenuOpen(false)}
           onDataChanged={refresh}
+        />
+      )}
+
+      {ambientSource.type === 'somafm' && (
+        <PickerSheet
+          visible={sessionStationPickerOpen}
+          title="SomaFM station"
+          options={SOMAFM_STATIONS.map((station) => ({ label: station.name, value: station.id }))}
+          value={ambientSource.stationId}
+          onSelect={changeStation}
+          onClose={() => setSessionStationPickerOpen(false)}
         />
       )}
     </TankBackdrop>

@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { theme } from '../theme';
 
@@ -21,7 +22,7 @@ export function SelectField({
       accessibilityLabel={accessibilityLabel}
     >
       <Text style={styles.value}>{value}</Text>
-      <Text style={styles.chevron}>⌄</Text>
+      <Ionicons name="chevron-down" size={14} color={theme.colors.textSecondary} />
     </Pressable>
   );
 }
@@ -41,10 +42,6 @@ const styles = StyleSheet.create({
   value: {
     color: theme.colors.textPrimary,
     fontWeight: '600',
-    fontSize: 13,
-  },
-  chevron: {
-    color: theme.colors.textSecondary,
     fontSize: 13,
   },
 });

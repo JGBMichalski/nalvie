@@ -1,10 +1,11 @@
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import { render, screen, fireEvent, act } from '@testing-library/react-native';
 
 import { SelectField } from '../../components/SelectField';
 
 describe('<SelectField />', () => {
   it('shows the current value', async () => {
     await render(<SelectField value="Groove Salad" accessibilityLabel="SomaFM station" onPress={jest.fn()} />);
+    await act(async () => {}); // flush the icon font's async load
 
     expect(screen.getByText('Groove Salad')).toBeTruthy();
   });
@@ -12,6 +13,7 @@ describe('<SelectField />', () => {
   it('calls onPress when tapped', async () => {
     const onPress = jest.fn();
     await render(<SelectField value="Groove Salad" accessibilityLabel="SomaFM station" onPress={onPress} />);
+    await act(async () => {}); // flush the icon font's async load
 
     fireEvent.press(screen.getByLabelText('SomaFM station'));
 
