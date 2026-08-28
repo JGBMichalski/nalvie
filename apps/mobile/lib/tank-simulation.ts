@@ -17,7 +17,9 @@ export interface Agent {
   heading: number; // Radians, 0 = right, π/2 = down, etc.
   speed: number; // Pixels per second, 0..cruiseSpeed*MAX_SPEED_FACTOR
   phase: number; // 0..1, where 0 is the start of a burst and 1 is the end of a glide
-  flip: number; // 1 = facing right, -1 = facing left; eased toward the target each frame
+  flip: number; // 1 = facing right, -1 = facing left. Swaps at the apex of a turn arc, never in-between.
+  turn: number; // U-turn arc progress, 0..1 while turning; -1 when not turning.
+  turnDir: number; // 1 = arc through nose-down, -1 = arc through nose-up.
   pitch: number; // Nose angle in degrees, clamped to ±MAX_PITCH_DEGREES, where 0 is horizontal
   rng: number;
   halfWidth: number;
@@ -32,7 +34,8 @@ const SCHOOL_RADIUS = 150; // How far a creature looks for schoolmates, in pixel
 const WALL_FORCE = 3.2; // How strongly walls repel swimmers, in units of cruiseSpeed/sec.
 const WALL_MARGIN = 56; // Pixels from the edge of the tank where walls start repelling swimmers.
 const BURST_FRACTION = 0.32; // Fraction of the burst period spent accelerating; the rest is coasting on drag.
-const FLIP_RATE = 3.4; // How quickly the facing flip eases toward the target, in units of 1/sec. A value of 1 would take ~1s to complete.
+const TURN_DURATION = 0.55; // Seconds for a full U-turn arc, nose sweeping through vertical.
+const TURN_DRAG = 1.1; // Extra drag while side-on to the flow mid-turn, in units of 1/sec — turning costs momentum.
 const MAX_SPEED_FACTOR = 2.2; // How much faster than cruiseSpeed a swimmer can go at the peak of a burst.
 
 function nextRandom(agent: Agent): number {
@@ -75,6 +78,8 @@ export function createAgent(
     speed: profile.cruiseSpeed,
     phase: 0,
     flip: 1,
+    turn: -1,
+    turnDir: 1,
     pitch: 0,
     rng: hashSeed(id),
     halfWidth,
@@ -221,6 +226,10 @@ export function stepAgents(agents: Agent[], width: number, height: number, dt: n
     const envelope = agent.phase < BURST_FRACTION ? 1 - agent.phase / BURST_FRACTION : 0;
     agent.speed += profile.burstThrust * envelope * dt;
     agent.speed -= agent.speed * profile.drag * dt;
+    // Mid-turn the body is broadside to the flow and sheds momentum, so an
+    // about-face reads as a banked manoeuvre instead of a full-speed glide.
+    const turning = agent.turn >= 0 ? Math.sin(Math.PI * Math.min(agent.turn, 1)) : 0;
+    agent.speed -= agent.speed * TURN_DRAG * turning * dt;
     const maxSpeed = profile.cruiseSpeed * MAX_SPEED_FACTOR;
     if (agent.speed > maxSpeed) agent.speed = maxSpeed;
     if (agent.speed < 0) agent.speed = 0;
@@ -240,19 +249,40 @@ export function stepAgents(agents: Agent[], width: number, height: number, dt: n
     if (agent.y < minY) agent.y = minY;
     if (agent.y > maxY) agent.y = maxY;
 
-    // Facing eases rather than snapping, so a turn reads as the body rotating.
+    // An about-face is choreographed as a U-turn arc: the nose pitches through
+    // vertical and the mirror swaps at the apex, where a horizontal flip of a
+    // nose-vertical silhouette is imperceptible. The silhouette never narrows,
+    // so there is no flat "card flip" through zero width.
     const targetFlip = !profile.flips ? 1 : dirX >= 0 ? 1 : -1;
-    const flipStep = FLIP_RATE * dt;
-    const flipDelta = targetFlip - agent.flip;
-    agent.flip += Math.max(-flipStep, Math.min(flipStep, flipDelta));
+    if (agent.turn < 0 && targetFlip !== agent.flip) {
+      agent.turn = 0;
+      // Arc downward when already diving, upward otherwise — with the flow.
+      agent.turnDir = dirY > 0 ? 1 : -1;
+    }
 
-    // Pitch takes its mirror sign from `flip`, not from the heading, so the nose
-    // never pops before the body has finished turning around.
-    if (profile.flips) {
+    if (!profile.flips) {
+      agent.pitch = 0;
+    } else if (agent.turn >= 0) {
+      agent.turn += dt / TURN_DURATION;
+      if (agent.turn >= 0.5) agent.flip = targetFlip;
+      if (agent.turn >= 1) {
+        agent.turn = -1;
+        const mirrored = agent.flip >= 0 ? Math.abs(dirX) : -Math.abs(dirX);
+        agent.pitch = travelPitchDegrees(mirrored, dirY);
+      } else {
+        // The arc rises to nose-vertical at the apex and settles back onto the
+        // travel pitch as it completes. `flip` swaps sign at the apex, which is
+        // exactly what keeps the rendered nose sweeping one way continuously.
+        const arc = Math.sin(Math.PI * agent.turn);
+        const mirrored = agent.flip >= 0 ? Math.abs(dirX) : -Math.abs(dirX);
+        const travel = travelPitchDegrees(mirrored, dirY);
+        agent.pitch = agent.flip * agent.turnDir * 90 * arc + travel * (1 - arc);
+      }
+    } else {
+      // Pitch takes its mirror sign from `flip`, not from the heading, so the
+      // nose never pops before the body has finished turning around.
       const mirrored = agent.flip >= 0 ? Math.abs(dirX) : -Math.abs(dirX);
       agent.pitch = travelPitchDegrees(mirrored, dirY);
-    } else {
-      agent.pitch = 0;
     }
   }
 }

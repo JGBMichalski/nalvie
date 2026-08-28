@@ -173,15 +173,48 @@ describe('depth preference', () => {
 });
 
 describe('facing', () => {
-  it('eases the mirror rather than snapping it', () => {
-    const agent = createAgent('clownfish', SIZE, WIDTH, HEIGHT);
+  function committedToTurn(agent: Agent) {
+    agent.x = WIDTH / 2;
+    agent.y = HEIGHT / 2;
     agent.flip = 1;
-    agent.heading = Math.PI; // now heading left, so the target flip is -1
+    agent.heading = Math.PI; // heading left, so the target facing is -1
+    return agent;
+  }
 
-    stepAgents([agent], WIDTH, HEIGHT, DT);
+  it('never narrows the silhouette: flip is always fully left or fully right', () => {
+    const agent = committedToTurn(createAgent('clownfish', SIZE, WIDTH, HEIGHT));
 
-    expect(agent.flip).toBeLessThan(1);
-    expect(agent.flip).toBeGreaterThan(-1);
+    for (let i = 0; i < 120; i++) {
+      stepAgents([agent], WIDTH, HEIGHT, DT);
+      expect(Math.abs(agent.flip)).toBe(1);
+    }
+  });
+
+  it('arcs the nose through vertical instead of mirroring in place', () => {
+    const agent = committedToTurn(createAgent('clownfish', SIZE, WIDTH, HEIGHT));
+
+    let apexPitch = 0;
+    for (let i = 0; i < 120; i++) {
+      stepAgents([agent], WIDTH, HEIGHT, DT);
+      apexPitch = Math.max(apexPitch, Math.abs(agent.pitch));
+    }
+
+    // The arc has to carry the nose near vertical — well past the travel-pitch clamp.
+    expect(apexPitch).toBeGreaterThan(80);
+  });
+
+  it('swaps the mirror at the apex and completes facing the new way', () => {
+    const agent = committedToTurn(createAgent('clownfish', SIZE, WIDTH, HEIGHT));
+
+    // Before the apex (~0.28s in) the fish still shows its original side.
+    for (let i = 0; i < Math.floor(0.2 / DT); i++) stepAgents([agent], WIDTH, HEIGHT, DT);
+    expect(agent.flip).toBe(1);
+    expect(agent.turn).toBeGreaterThanOrEqual(0);
+
+    // Well after the arc it faces the new way with the arc finished.
+    for (let i = 0; i < Math.floor(1 / DT); i++) stepAgents([agent], WIDTH, HEIGHT, DT);
+    expect(agent.flip).toBe(-1);
+    expect(agent.turn).toBe(-1);
   });
 
   it('never mirrors a radially symmetric creature', () => {
