@@ -10,5 +10,7 @@ module.exports = {
   scheduleNotificationAsync: jest.fn(async () => 'mock-notification-id'),
   cancelScheduledNotificationAsync: jest.fn(async () => undefined),
   cancelAllScheduledNotificationsAsync: jest.fn(async () => undefined),
+  addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  setNotificationHandler: jest.fn(),
   SchedulableTriggerInputTypes: { DATE: 'date' },
 };

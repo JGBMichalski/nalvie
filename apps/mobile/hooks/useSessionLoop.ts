@@ -20,6 +20,7 @@ import {
 
 import { useLeaveDetection, type AppStateLike } from './useLeaveDetection';
 import {
+  addFailedNotificationDeliveredListener,
   cancelAllPendingSessionNotifications,
   cancelCompletedNotification,
   cancelFailedNotification,
@@ -85,6 +86,15 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     },
     [repository, refreshFromRepository],
   );
+
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+  useEffect(() => {
+    const subscription = addFailedNotificationDeliveredListener(() => {
+      if (sessionRef.current) finishFail(sessionRef.current);
+    });
+    return () => subscription.remove();
+  }, [finishFail]);
 
   const finishComplete = useCallback(
     async (current: FocusSession) => {

@@ -14,6 +14,7 @@ jest.mock('expo-notifications', () => ({
   scheduleNotificationAsync: jest.fn(),
   cancelScheduledNotificationAsync: jest.fn(),
   cancelAllScheduledNotificationsAsync: jest.fn(),
+  addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   SchedulableTriggerInputTypes: { DATE: 'date' },
 }));
 
@@ -240,6 +241,39 @@ describe('useSessionLoop', () => {
 
     expect(result.current.phase).toBe('toast-failed');
     expect(result.current.toastMessage).toMatch(/no reward this time/);
+  });
+
+  it('fails the session on the failed notification actually being delivered, not just a same-instant JS timer', async () => {
+    // React Native's JS timers are known to be throttled/deprioritized once
+    // backgrounded (facebook/react-native#21211, #23674) — so the delivered
+    // notification (a native-bridge event, not a JS timer) is what must
+    // reliably trigger the fail, independent of whether any setTimeout in
+    // this process happens to fire.
+    const repo = createInMemorySessionRepository();
+    const appState = makeFakeAppState();
+    let deliverFailedNotification: () => void = () => {};
+    (Notifications.addNotificationReceivedListener as jest.Mock).mockImplementation((cb) => {
+      deliverFailedNotification = () => cb({ request: { content: { data: { kind: 'session-failed' } } } });
+      return { remove: jest.fn() };
+    });
+    const { result } = renderHook(() => useSessionLoop(repo, appState as never));
+    await act(async () => {});
+
+    await act(async () => {
+      await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+    });
+    appState.emit('background'); // no jest.advanceTimersByTime at all — the JS timer never fires
+
+    await act(async () => {
+      deliverFailedNotification();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.phase).toBe('toast-failed');
+    const savedSessions = await repo.listSessions();
+    expect(savedSessions[0].outcome).toBe('failed');
   });
 
   describe('session-result notifications (Ticket 08)', () => {

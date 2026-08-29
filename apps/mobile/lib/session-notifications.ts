@@ -1,3 +1,4 @@
+import type { EventSubscription } from 'expo-modules-core';
 import * as Notifications from 'expo-notifications';
 import { GRACE_PERIOD_MS, UNLOCK_POOL, type FocusSession } from '@nalvie/core';
 
@@ -10,6 +11,7 @@ import { settingsRepository } from './repository';
 type NotificationKind = 'completed' | 'failed';
 
 const scheduledIds: Record<NotificationKind, string | null> = { completed: null, failed: null };
+const FAILED_NOTIFICATION_DATA = { kind: 'session-failed' } as const;
 
 async function canNotify(): Promise<boolean> {
   const settings = await settingsRepository.getSettings();
@@ -54,11 +56,18 @@ export async function scheduleFailedNotification(): Promise<void> {
     content: {
       title: 'Nalvie',
       body: 'Session ended — you stepped away too long. No reward this time.',
+      data: FAILED_NOTIFICATION_DATA,
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
       date: new Date(Date.now() + GRACE_PERIOD_MS),
     },
+  });
+}
+
+export function addFailedNotificationDeliveredListener(listener: () => void): EventSubscription {
+  return Notifications.addNotificationReceivedListener((event) => {
+    if (event.request.content.data?.kind === FAILED_NOTIFICATION_DATA.kind) listener();
   });
 }
 

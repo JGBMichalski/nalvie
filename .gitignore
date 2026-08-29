@@ -161,6 +161,12 @@ ios/
 # prebuild output) — see apps/mobile/modules/*/{ios,android}.
 !apps/mobile/modules/**/ios/
 !apps/mobile/modules/**/android/
+# ...but still ignore *their* Gradle/Xcode build output, which the blanket
+# un-ignore above would otherwise re-include.
+apps/mobile/modules/**/android/build/
+apps/mobile/modules/**/android/.cxx/
+apps/mobile/modules/**/android/.gradle/
+apps/mobile/modules/**/ios/build/
 
 # Turborepo
 .turbo/

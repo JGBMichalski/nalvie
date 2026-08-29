@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { GRACE_PERIOD_MS, type FocusSession } from '@nalvie/core';
 
 import {
+  addFailedNotificationDeliveredListener,
   cancelAllPendingSessionNotifications,
   cancelFailedNotification,
   cancelSessionNotifications,
@@ -18,6 +19,7 @@ jest.mock('expo-notifications', () => ({
   scheduleNotificationAsync: jest.fn(),
   cancelScheduledNotificationAsync: jest.fn(),
   cancelAllScheduledNotificationsAsync: jest.fn(),
+  addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   SchedulableTriggerInputTypes: { DATE: 'date' },
 }));
 
@@ -108,6 +110,46 @@ describe('session-notifications', () => {
         date: new Date(Date.now() + GRACE_PERIOD_MS),
       });
       jest.useRealTimers();
+    });
+
+    it('tags the notification so its actual delivery can be told apart from other notifications', async () => {
+      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: true });
+
+      await scheduleFailedNotification();
+
+      const call = (Notifications.scheduleNotificationAsync as jest.Mock).mock.calls[0][0];
+      expect(call.content.data).toEqual({ kind: 'session-failed' });
+    });
+  });
+
+  describe('addFailedNotificationDeliveredListener', () => {
+    it('fires when the OS actually delivers the tagged failed notification', () => {
+      const listener = jest.fn();
+      let deliver: (event: unknown) => void = () => {};
+      (Notifications.addNotificationReceivedListener as jest.Mock).mockImplementation((cb) => {
+        deliver = cb;
+        return { remove: jest.fn() };
+      });
+
+      addFailedNotificationDeliveredListener(listener);
+      deliver({ request: { content: { data: { kind: 'session-failed' } } } });
+
+      expect(listener).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores unrelated notifications (e.g. the completed one, or one with no data at all)', () => {
+      const listener = jest.fn();
+      let deliver: (event: unknown) => void = () => {};
+      (Notifications.addNotificationReceivedListener as jest.Mock).mockImplementation((cb) => {
+        deliver = cb;
+        return { remove: jest.fn() };
+      });
+
+      addFailedNotificationDeliveredListener(listener);
+      deliver({ request: { content: { data: undefined } } });
+      deliver({ request: { content: { data: { kind: 'something-else' } } } });
+
+      expect(listener).not.toHaveBeenCalled();
     });
   });
 
