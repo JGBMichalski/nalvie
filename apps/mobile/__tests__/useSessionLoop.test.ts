@@ -305,9 +305,12 @@ describe('useSessionLoop', () => {
       await act(async () => {
         appState.emit('background');
       });
-      expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(1);
-      const call = (Notifications.scheduleNotificationAsync as jest.Mock).mock.calls[0][0];
-      expect(call.content.body).toMatch(/stepped away too long/i);
+      // Two notifications fire on leaving: an immediate "will end soon" warning,
+      // and the "already ended" one scheduled for the grace-period instant.
+      expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(2);
+      const bodies = (Notifications.scheduleNotificationAsync as jest.Mock).mock.calls.map((call) => call[0].content.body);
+      expect(bodies.some((body: string) => /will end in/i.test(body))).toBe(true);
+      expect(bodies.some((body: string) => /stepped away too long/i.test(body))).toBe(true);
 
       await act(async () => {
         jest.advanceTimersByTime(GRACE_PERIOD_MS - 1000);
@@ -316,6 +319,58 @@ describe('useSessionLoop', () => {
 
       expect(Notifications.cancelScheduledNotificationAsync).toHaveBeenCalledWith('scheduled-id');
       expect(result.current.phase).toBe('in-progress'); // returned within the grace period
+    });
+
+    it('sends an immediate warning naming the grace period the moment leaving starts', async () => {
+      const repo = createInMemorySessionRepository();
+      const appState = makeFakeAppState();
+      const { result } = renderHook(() => useSessionLoop(repo, appState as never));
+      await act(async () => {});
+
+      await act(async () => {
+        await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+      });
+      (Notifications.scheduleNotificationAsync as jest.Mock).mockClear();
+
+      await act(async () => {
+        appState.emit('background');
+      });
+
+      const warningCall = (Notifications.scheduleNotificationAsync as jest.Mock).mock.calls.find((call) =>
+        /will end in/i.test(call[0].content.body),
+      );
+      expect(warningCall[0].trigger).toBeNull(); // delivered immediately, not scheduled
+    });
+
+    it('lets the already-scheduled failed notification actually fire once the grace period elapses in the background, instead of cancelling it', async () => {
+      const repo = createInMemorySessionRepository();
+      const appState = makeFakeAppState();
+      // Distinguish which notification got cancelled — the shared 'scheduled-id'
+      // stub can't tell completed/failed apart.
+      (Notifications.scheduleNotificationAsync as jest.Mock).mockImplementation(async (args) =>
+        /stepped away too long/i.test(args.content.body) ? 'failed-id' : 'other-id',
+      );
+      const { result } = renderHook(() => useSessionLoop(repo, appState as never));
+      await act(async () => {});
+
+      await act(async () => {
+        await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+      });
+
+      await act(async () => {
+        appState.emit('background');
+        jest.advanceTimersByTime(GRACE_PERIOD_MS); // grace expires while still backgrounded
+        await Promise.resolve();
+      });
+
+      // The session is actually cancelled (failed) in the background, not just
+      // left dangling until the user reopens the app...
+      expect(result.current.session).toBeNull();
+      const savedSessions = await repo.listSessions();
+      expect(savedSessions[0].outcome).toBe('failed');
+      // ...and the OS notification that was scheduled for exactly this moment
+      // is left alone to actually be delivered, not cancelled out from under it.
+      expect(Notifications.cancelScheduledNotificationAsync).not.toHaveBeenCalledWith('failed-id');
     });
 
     it('cancels the completed notification while paused, since paused time no longer counts toward it', async () => {

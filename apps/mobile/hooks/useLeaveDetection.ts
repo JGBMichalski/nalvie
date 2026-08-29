@@ -20,17 +20,36 @@ export function useLeaveDetection(
 ): void {
   const backgroundedAtRef = useRef<number | null>(null);
   const isBackgroundRef = useRef(false);
+  const graceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onGraceExpiredRef = useRef(onGraceExpired);
   onGraceExpiredRef.current = onGraceExpired;
   const onGraceClockChangeRef = useRef(onGraceClockChange);
   onGraceClockChangeRef.current = onGraceClockChange;
 
+  function clearGraceTimeout() {
+    if (graceTimeoutRef.current === null) return;
+    clearTimeout(graceTimeoutRef.current);
+    graceTimeoutRef.current = null;
+  }
+
+  function armGraceTimeout() {
+    clearGraceTimeout();
+    graceTimeoutRef.current = setTimeout(() => {
+      graceTimeoutRef.current = null;
+      backgroundedAtRef.current = null;
+      onGraceClockChangeRef.current?.(false);
+      onGraceExpiredRef.current();
+    }, GRACE_PERIOD_MS);
+  }
+
   function startGraceClock() {
     backgroundedAtRef.current = Date.now();
     onGraceClockChangeRef.current?.(true);
+    armGraceTimeout();
   }
 
   function stopGraceClock() {
+    clearGraceTimeout();
     if (backgroundedAtRef.current === null) return;
     backgroundedAtRef.current = null;
     onGraceClockChangeRef.current?.(false);
@@ -52,6 +71,7 @@ export function useLeaveDetection(
 
   useEffect(() => {
     if (!enabled) {
+      clearGraceTimeout();
       if (backgroundedAtRef.current !== null) onGraceClockChangeRef.current?.(false);
       backgroundedAtRef.current = null;
       isBackgroundRef.current = false;

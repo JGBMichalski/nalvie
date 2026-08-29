@@ -62,6 +62,18 @@ export async function scheduleFailedNotification(): Promise<void> {
   });
 }
 
+export async function sendLeaveWarningNotification(): Promise<void> {
+  if (!(await canNotify())) return;
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Nalvie',
+      body: `Your session will end in ${Math.round(GRACE_PERIOD_MS / 1000)} seconds unless you return.`,
+    },
+    trigger: null,
+  });
+}
+
 export function cancelCompletedNotification(): Promise<void> {
   return cancel('completed');
 }

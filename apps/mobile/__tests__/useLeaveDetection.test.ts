@@ -38,6 +38,34 @@ describe('useLeaveDetection', () => {
     expect(onGraceExpired).toHaveBeenCalledTimes(1);
   });
 
+  it('fires the moment the grace period elapses while still backgrounded, without waiting for a return to foreground', () => {
+    const onGraceExpired = jest.fn();
+    const appState = makeFakeAppState();
+    renderHook(() => useLeaveDetection(true, onGraceExpired, appState as never));
+
+    appState.emit('background');
+    jest.advanceTimersByTime(GRACE_PERIOD_MS);
+
+    expect(onGraceExpired).toHaveBeenCalledTimes(1); // no 'active' event needed
+  });
+
+  it('does not double-fire if the app later returns to foreground after already firing in the background', () => {
+    const onGraceExpired = jest.fn();
+    const onGraceClockChange = jest.fn();
+    const appState = makeFakeAppState();
+    renderHook(() => useLeaveDetection(true, onGraceExpired, appState as never, onGraceClockChange));
+
+    appState.emit('background');
+    jest.advanceTimersByTime(GRACE_PERIOD_MS);
+    expect(onGraceExpired).toHaveBeenCalledTimes(1);
+    expect(onGraceClockChange).toHaveBeenLastCalledWith(false); // clock stopped itself once it fired
+
+    jest.advanceTimersByTime(60_000);
+    appState.emit('active');
+
+    expect(onGraceExpired).toHaveBeenCalledTimes(1);
+  });
+
   it('treats iOS "inactive" the same as "background"', () => {
     const onGraceExpired = jest.fn();
     const appState = makeFakeAppState();
@@ -91,6 +119,21 @@ describe('useLeaveDetection', () => {
 
     rerender({ enabled: false }); // e.g. the user paused
     expect(onBackgroundChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it('does not fire a pending proactive timeout after being disabled mid-background (e.g. the user paused)', () => {
+    const onGraceExpired = jest.fn();
+    const appState = makeFakeAppState();
+    const { rerender } = renderHook<void, { enabled: boolean }>(
+      ({ enabled }) => useLeaveDetection(enabled, onGraceExpired, appState as never),
+      { initialProps: { enabled: true } },
+    );
+
+    appState.emit('background');
+    rerender({ enabled: false });
+    jest.advanceTimersByTime(GRACE_PERIOD_MS + 1000);
+
+    expect(onGraceExpired).not.toHaveBeenCalled();
   });
 
   describe('screen-lock gate', () => {

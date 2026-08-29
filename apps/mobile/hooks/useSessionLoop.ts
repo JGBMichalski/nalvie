@@ -26,6 +26,7 @@ import {
   cancelSessionNotifications,
   scheduleCompletedNotification,
   scheduleFailedNotification,
+  sendLeaveWarningNotification,
 } from '../lib/session-notifications';
 
 export type SessionPhase = 'idle' | 'in-progress' | 'toast-complete' | 'toast-failed';
@@ -72,7 +73,7 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
 
   const finishFail = useCallback(
     async (current: FocusSession) => {
-      await cancelSessionNotifications();
+      await cancelCompletedNotification();
       await repository.saveSession(failSession(current));
       setSession(null);
       setIsPaused(false);
@@ -140,8 +141,12 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     appState,
     // Notify only when the grace clock is actually running
     (graceClockRunning) => {
-      if (graceClockRunning) scheduleFailedNotification();
-      else cancelFailedNotification();
+      if (graceClockRunning) {
+        void sendLeaveWarningNotification();
+        void scheduleFailedNotification();
+      } else {
+        void cancelFailedNotification();
+      }
     },
   );
 

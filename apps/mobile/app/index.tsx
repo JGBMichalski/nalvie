@@ -75,19 +75,19 @@ export default function HomeScreen() {
     }, [refresh]),
   );
 
-  // Ambience plays only while actively focusing — not paused or session-muted
+  // Ambience plays only while actively focusing (not paused or session-muted)
   // Resets to the start of the loop once the session actually resolves.
   const ambienceShouldPlay = phase === 'in-progress' && !isPaused && !isSessionMuted && soundEnabled;
-  // Only recomputes when remainingMinutes ticks over
-  const remainingMinutes = Math.ceil(remainingMs / 60_000);
+  // Only recomputes when remainingSeconds ticks over
+  const remainingSeconds = Math.ceil(remainingMs / 1000);
   const lockScreenMetadata = useMemo(
     () => ({
       title: isPaused ? 'Paused' : `${formatRemaining(remainingMs)} remaining`,
       artist: 'Nalvie focus session',
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately
-    // keyed on remainingMinutes, not remainingMs, to enforce the once/minute cadence
-    [remainingMinutes, isPaused],
+    // keyed on remainingSeconds, not remainingMs, to enforce the once/second cadence
+    [remainingSeconds, isPaused],
   );
   useAmbientSound(ambienceShouldPlay, ambientSource, phase !== 'in-progress', {
     metadata: lockScreenMetadata,
@@ -154,10 +154,13 @@ export default function HomeScreen() {
               )}
             </View>
             {ambienceShouldPlay && ambientSource.type === 'somafm' && (
-              <Pressable onPress={() => setSessionStationPickerOpen(true)} accessibilityLabel="Change station">
-                <Text style={styles.attributionText}>
-                  SomaFM — {somafmStationName(ambientSource.stationId)} ⌄
-                </Text>
+              <Pressable
+                onPress={() => setSessionStationPickerOpen(true)}
+                accessibilityLabel="Change station"
+                style={styles.stationAttribution}
+              >
+                <Text style={styles.attributionText}>SomaFM — {somafmStationName(ambientSource.stationId)}</Text>
+                <Ionicons name="chevron-down" size={14} color={theme.colors.textSecondary} />
               </Pressable>
             )}
           </View>
@@ -334,6 +337,11 @@ const styles = StyleSheet.create({
   attributionText: {
     color: theme.colors.textSecondary,
     fontSize: 11,
+  },
+  stationAttribution: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   toast: {
     position: 'absolute',

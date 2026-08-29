@@ -7,6 +7,7 @@ import {
   cancelSessionNotifications,
   scheduleCompletedNotification,
   scheduleFailedNotification,
+  sendLeaveWarningNotification,
 } from '../../lib/session-notifications';
 import { resetSettingsRepositoryForTests, settingsRepository } from '../../lib/repository';
 import { DEFAULT_SETTINGS } from '../../lib/default-settings';
@@ -107,6 +108,27 @@ describe('session-notifications', () => {
         date: new Date(Date.now() + GRACE_PERIOD_MS),
       });
       jest.useRealTimers();
+    });
+  });
+
+  describe('sendLeaveWarningNotification', () => {
+    it('does nothing when notifications are disabled', async () => {
+      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: false });
+
+      await sendLeaveWarningNotification();
+
+      expect(Notifications.scheduleNotificationAsync).not.toHaveBeenCalled();
+    });
+
+    it('delivers immediately (not scheduled for later), mentioning the grace period', async () => {
+      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: true });
+
+      await sendLeaveWarningNotification();
+
+      expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(1);
+      const call = (Notifications.scheduleNotificationAsync as jest.Mock).mock.calls[0][0];
+      expect(call.content.body).toMatch(/15 seconds/);
+      expect(call.trigger).toBeNull();
     });
   });
 
