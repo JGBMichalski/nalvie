@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Slider from '@react-native-community/slider';
@@ -10,14 +10,21 @@ const MAX_CUSTOM_MINUTES = 120;
 
 export function DurationPickerSheet({
   visible,
+  defaultMinutes = SESSION_PRESET_MINUTES[0],
   onClose,
   onStart,
 }: {
   visible: boolean;
+  defaultMinutes?: number;
   onClose: () => void;
   onStart: (minutes: number) => void;
 }) {
-  const [minutes, setMinutes] = useState<number>(SESSION_PRESET_MINUTES[0]);
+  const [minutes, setMinutes] = useState<number>(defaultMinutes);
+
+  useEffect(() => {
+    if (visible) setMinutes(defaultMinutes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>

@@ -14,6 +14,7 @@ import { TankBackdrop } from '../components/TankBackdrop';
 import { TankScene } from '../components/TankScene';
 import { useAmbientSound, toAmbientSource, type AmbientSource } from '../hooks/useAmbientSound';
 import { useSessionLoop } from '../hooks/useSessionLoop';
+import { DEFAULT_SETTINGS } from '../lib/default-settings';
 import { sessionRepository, settingsRepository } from '../lib/repository';
 import { SOMAFM_STATIONS, somafmStationName } from '../lib/somafm-stations';
 import { theme } from '../theme';
@@ -33,6 +34,7 @@ export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [onboardingGateResolved, setOnboardingGateResolved] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [defaultSessionMinutes, setDefaultSessionMinutes] = useState(DEFAULT_SETTINGS.defaultSessionMinutes);
   const [ambientSource, setAmbientSource] = useState<AmbientSource>({ type: 'local' });
   const [sessionStationPickerOpen, setSessionStationPickerOpen] = useState(false);
   const {
@@ -70,6 +72,7 @@ export default function HomeScreen() {
       refresh();
       settingsRepository.getSettings().then((settings) => {
         setSoundEnabled(settings.soundEnabled);
+        setDefaultSessionMinutes(settings.defaultSessionMinutes);
         setAmbientSource(toAmbientSource(settings));
       });
     }, [refresh]),
@@ -215,6 +218,7 @@ export default function HomeScreen() {
 
       <DurationPickerSheet
         visible={step === 'duration'}
+        defaultMinutes={defaultSessionMinutes}
         onClose={() => setStep('idle')}
         onStart={(minutes) => {
           setStep('idle');

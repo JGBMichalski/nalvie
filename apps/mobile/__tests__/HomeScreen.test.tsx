@@ -24,8 +24,30 @@ describe('<HomeScreen />', () => {
     fireEvent.press(screen.getByText('Start'));
     await act(async () => {}); // flush startSession's repository write
 
-    expect(screen.getByText(`${MIN_SESSION_MINUTES}:00`)).toBeTruthy();
+    // DEFAULT_SETTINGS.defaultSessionMinutes, not MIN_SESSION_MINUTES/the
+    // duration sheet's hardcoded first preset — see the dedicated test below.
+    expect(screen.getByText(`${DEFAULT_SETTINGS.defaultSessionMinutes}:00`)).toBeTruthy();
     expect(screen.getByText('Pause')).toBeTruthy();
+  });
+
+  it("starts a session using Settings.defaultSessionMinutes, not the duration sheet's hardcoded first preset", async () => {
+    await settingsRepository.saveSettings({
+      ...DEFAULT_SETTINGS,
+      hasCompletedOnboarding: true,
+      defaultSessionMinutes: 50,
+    });
+    renderRouter('./app', { initialUrl: '/' });
+    await act(async () => {});
+
+    fireEvent.press(await screen.findByLabelText('Start a session'));
+    fireEvent.press(screen.getByText('Clownfish'));
+
+    expect(screen.getByText('Custom: 50 min')).toBeTruthy(); // the 50m preset should already be highlighted
+
+    fireEvent.press(screen.getByText('Start'));
+    await act(async () => {});
+
+    expect(screen.getByText('50:00')).toBeTruthy();
   });
 
   it('toggles the pause button through Pause -> Resume -> Pause used', async () => {
@@ -50,6 +72,7 @@ describe('<HomeScreen />', () => {
 
     fireEvent.press(await screen.findByLabelText('Start a session'));
     fireEvent.press(screen.getByText('Clownfish'));
+    fireEvent.press(screen.getByText(`${MIN_SESSION_MINUTES}m`)); // explicit, regardless of Settings.defaultSessionMinutes
     fireEvent.press(screen.getByText('Start'));
     await act(async () => {}); // flush startSession's repository write
 
