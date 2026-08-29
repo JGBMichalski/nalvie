@@ -3,7 +3,6 @@ import * as Notifications from 'expo-notifications';
 import { GRACE_PERIOD_MS, UNLOCK_POOL, completesAt, type FocusSession } from '@nalvie/core';
 
 import { hasNotificationPermission } from './notification-permissions';
-import { settingsRepository } from './repository';
 
 // Session notifications shown while the app is backgrounded at the moment
 // a session resolves
@@ -14,8 +13,6 @@ const scheduledIds: Record<NotificationKind, string | null> = { completed: null,
 const FAILED_NOTIFICATION_DATA = { kind: 'session-failed' } as const;
 
 async function canNotify(): Promise<boolean> {
-  const settings = await settingsRepository.getSettings();
-  if (!settings.notificationsEnabled) return false;
   return hasNotificationPermission();
 }
 

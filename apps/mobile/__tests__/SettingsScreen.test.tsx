@@ -1,28 +1,12 @@
 import { act, fireEvent } from '@testing-library/react-native';
-import { renderRouter, screen, testRouter } from 'expo-router/testing-library';
-import * as Notifications from 'expo-notifications';
+import { renderRouter, screen } from 'expo-router/testing-library';
 import { useAudioPlayer } from 'expo-audio';
 
 import { resetSettingsRepositoryForTests, settingsRepository } from '../lib/repository';
 
-jest.mock('expo-notifications', () => ({
-  getPermissionsAsync: jest.fn(),
-  requestPermissionsAsync: jest.fn(),
-  scheduleNotificationAsync: jest.fn(),
-  cancelScheduledNotificationAsync: jest.fn(),
-  cancelAllScheduledNotificationsAsync: jest.fn(),
-  addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
-  setNotificationHandler: jest.fn(),
-  SchedulableTriggerInputTypes: { DATE: 'date' },
-}));
-
 describe('<SettingsScreen />', () => {
   beforeEach(() => {
     resetSettingsRepositoryForTests();
-    (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: 'undetermined',
-      canAskAgain: true,
-    });
     (useAudioPlayer as jest.Mock).mockClear();
   });
 
@@ -201,48 +185,5 @@ describe('<SettingsScreen />', () => {
 
       expect(screen.getByLabelText('Preview station')).toBeTruthy();
     });
-  });
-
-  it('requests OS permission when notifications are toggled on, and persists the result', async () => {
-    (Notifications.requestPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
-    renderRouter('./app', { initialUrl: '/settings' });
-    await act(async () => {});
-
-    fireEvent(await screen.findByLabelText('Notifications'), 'valueChange', true);
-    await act(async () => {});
-
-    expect(Notifications.requestPermissionsAsync).toHaveBeenCalled();
-    expect((await settingsRepository.getSettings()).notificationsEnabled).toBe(true);
-  });
-
-  it('does not enable notifications when permission is declined', async () => {
-    (Notifications.requestPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'denied' });
-    renderRouter('./app', { initialUrl: '/settings' });
-    await act(async () => {});
-
-    fireEvent(await screen.findByLabelText('Notifications'), 'valueChange', true);
-    await act(async () => {});
-
-    expect((await settingsRepository.getSettings()).notificationsEnabled).toBe(false);
-  });
-
-  it('re-checks OS permission on refocus, catching a permission revoked outside the app', async () => {
-    (Notifications.requestPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
-    renderRouter('./app', { initialUrl: '/settings' });
-    await act(async () => {});
-
-    fireEvent(await screen.findByLabelText('Notifications'), 'valueChange', true);
-    await act(async () => {});
-    expect(screen.getByLabelText('Notifications').props.value).toBe(true);
-
-    // Permission revoked from outside the app (e.g. OS settings) while this
-    // screen isn't focused; navigating away and back should pick it up.
-    (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'denied', canAskAgain: true });
-    testRouter.push('/');
-    await act(async () => {});
-    testRouter.back();
-    await act(async () => {});
-
-    expect(screen.getByLabelText('Notifications').props.value).toBe(false);
   });
 });

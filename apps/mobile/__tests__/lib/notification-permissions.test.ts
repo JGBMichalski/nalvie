@@ -1,11 +1,6 @@
 import * as Notifications from 'expo-notifications';
-import { Linking } from 'react-native';
 
-import {
-  hasNotificationPermission,
-  requestNotificationPermission,
-  resolveNotificationsEnabled,
-} from '../../lib/notification-permissions';
+import { hasNotificationPermission, requestNotificationPermission } from '../../lib/notification-permissions';
 
 jest.mock('expo-notifications', () => ({
   getPermissionsAsync: jest.fn(),
@@ -32,10 +27,6 @@ describe('hasNotificationPermission', () => {
 });
 
 describe('requestNotificationPermission', () => {
-  beforeEach(() => {
-    jest.spyOn(Linking, 'openSettings').mockResolvedValue();
-  });
-
   it('returns true immediately when already granted, without prompting', async () => {
     (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted', canAskAgain: true });
 
@@ -64,31 +55,13 @@ describe('requestNotificationPermission', () => {
     expect(await requestNotificationPermission()).toBe(false);
   });
 
-  it('deep-links to system settings instead of prompting once already denied', async () => {
+  it('resolves false immediately once already permanently denied — safe to call unconditionally on every launch', async () => {
     (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({
       status: 'denied',
       canAskAgain: false,
     });
 
     expect(await requestNotificationPermission()).toBe(false);
-    expect(Linking.openSettings).toHaveBeenCalled();
     expect(Notifications.requestPermissionsAsync).not.toHaveBeenCalled();
-  });
-});
-
-describe('resolveNotificationsEnabled', () => {
-  it('is false when turning notifications off, without touching the OS', async () => {
-    expect(await resolveNotificationsEnabled(false)).toBe(false);
-    expect(Notifications.getPermissionsAsync).not.toHaveBeenCalled();
-  });
-
-  it('requests permission when turning notifications on, and reflects the outcome', async () => {
-    (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: 'undetermined',
-      canAskAgain: true,
-    });
-    (Notifications.requestPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
-
-    expect(await resolveNotificationsEnabled(true)).toBe(true);
   });
 });

@@ -41,7 +41,6 @@ function migrate(database: SQLite.SQLiteDatabase): void {
       default_session_minutes REAL NOT NULL,
       sound_enabled INTEGER NOT NULL,
       dark_mode_override INTEGER,
-      notifications_enabled INTEGER NOT NULL,
       has_completed_onboarding INTEGER NOT NULL DEFAULT 0,
       sound_source TEXT NOT NULL DEFAULT 'local',
       somafm_station_id TEXT NOT NULL DEFAULT 'groovesalad'

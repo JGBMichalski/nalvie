@@ -39,7 +39,6 @@ export interface Settings {
   defaultSessionMinutes: number;
   soundEnabled: boolean;
   darkModeOverride: boolean | null; // null = follow system, true = dark, false = light
-  notificationsEnabled: boolean;
   hasCompletedOnboarding: boolean; // gates the first-launch intro flow
   soundSource: "local" | "somafm"; // which ambient audio plays when soundEnabled is true
   somafmStationId: string; // only meaningful when soundSource is "somafm"

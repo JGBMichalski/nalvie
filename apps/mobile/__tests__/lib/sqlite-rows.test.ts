@@ -51,7 +51,6 @@ describe('settings row mapping', () => {
     defaultSessionMinutes: 25,
     soundEnabled: true,
     darkModeOverride: null,
-    notificationsEnabled: false,
     hasCompletedOnboarding: false,
     soundSource: 'local',
     somafmStationId: 'groovesalad',

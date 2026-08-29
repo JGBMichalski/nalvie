@@ -3,8 +3,7 @@ import { GRACE_PERIOD_MS, MAX_PAUSE_MS, MIN_SESSION_MINUTES, completesAt } from 
 import * as Notifications from 'expo-notifications';
 
 import { createInMemorySessionRepository } from '../lib/in-memory-session-repository';
-import { resetSettingsRepositoryForTests, settingsRepository } from '../lib/repository';
-import { DEFAULT_SETTINGS } from '../lib/default-settings';
+import { resetSettingsRepositoryForTests } from '../lib/repository';
 import { useSessionLoop } from '../hooks/useSessionLoop';
 import { cancelNativeAudioStop, scheduleNativeAudioStop } from '../modules/screen-lock-signal';
 import { makeFakeAppState } from './test-utils/fake-app-state';
@@ -355,10 +354,6 @@ describe('useSessionLoop', () => {
   });
 
   describe('session-result notifications (Ticket 08)', () => {
-    beforeEach(async () => {
-      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: true });
-    });
-
     it('schedules a completed notification at session start when notifications are enabled', async () => {
       const repo = createInMemorySessionRepository();
       const { result } = renderHook(() => useSessionLoop(repo));
@@ -373,8 +368,8 @@ describe('useSessionLoop', () => {
       expect(call.content.body).toMatch(/tank grew/i);
     });
 
-    it('does not schedule anything when notifications are disabled', async () => {
-      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: false });
+    it('does not schedule anything when OS notification permission is not granted', async () => {
+      (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'denied' });
       const repo = createInMemorySessionRepository();
       const { result } = renderHook(() => useSessionLoop(repo));
       await act(async () => {});

@@ -15,7 +15,6 @@ describe('createInMemorySettingsRepository', () => {
       defaultSessionMinutes: 50,
       soundEnabled: false,
       darkModeOverride: true,
-      notificationsEnabled: true,
       hasCompletedOnboarding: true,
       soundSource: 'somafm',
       somafmStationId: 'dronezone',

@@ -10,8 +10,6 @@ import {
   scheduleFailedNotification,
   sendLeaveWarningNotification,
 } from '../../lib/session-notifications';
-import { resetSettingsRepositoryForTests, settingsRepository } from '../../lib/repository';
-import { DEFAULT_SETTINGS } from '../../lib/default-settings';
 
 jest.mock('expo-notifications', () => ({
   getPermissionsAsync: jest.fn(),
@@ -40,22 +38,12 @@ function makeSession(overrides: Partial<FocusSession> = {}): FocusSession {
 describe('session-notifications', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
-    resetSettingsRepositoryForTests();
     (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
     (Notifications.scheduleNotificationAsync as jest.Mock).mockResolvedValue('scheduled-id');
   });
 
   describe('scheduleCompletedNotification', () => {
-    it('does nothing when notifications are disabled in Settings', async () => {
-      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: false });
-
-      await scheduleCompletedNotification(makeSession());
-
-      expect(Notifications.scheduleNotificationAsync).not.toHaveBeenCalled();
-    });
-
-    it('does nothing when notifications are enabled but OS permission is not granted', async () => {
-      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: true });
+    it('does nothing when OS notification permission is not granted', async () => {
       (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'denied' });
 
       await scheduleCompletedNotification(makeSession());
@@ -64,8 +52,6 @@ describe('session-notifications', () => {
     });
 
     it('schedules a "tank grew" notification at startedAt + plannedDurationMinutes (+ any credited pause)', async () => {
-      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: true });
-
       await scheduleCompletedNotification(makeSession({ pausedMs: 5_000 }));
 
       expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(1);
@@ -78,8 +64,6 @@ describe('session-notifications', () => {
     });
 
     it('cancels a previously-scheduled completed notification before scheduling a new one', async () => {
-      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: true });
-
       await scheduleCompletedNotification(makeSession());
       await scheduleCompletedNotification(makeSession({ pausedMs: 60_000 })); // e.g. rescheduled after a pause
 
@@ -89,8 +73,8 @@ describe('session-notifications', () => {
   });
 
   describe('scheduleFailedNotification', () => {
-    it('does nothing when notifications are disabled', async () => {
-      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: false });
+    it('does nothing when OS notification permission is not granted', async () => {
+      (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'denied' });
 
       await scheduleFailedNotification();
 
@@ -98,7 +82,6 @@ describe('session-notifications', () => {
     });
 
     it('schedules a "session ended" notification GRACE_PERIOD_MS from now', async () => {
-      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: true });
       jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
 
       await scheduleFailedNotification();
@@ -113,8 +96,6 @@ describe('session-notifications', () => {
     });
 
     it('tags the notification so its actual delivery can be told apart from other notifications', async () => {
-      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: true });
-
       await scheduleFailedNotification();
 
       const call = (Notifications.scheduleNotificationAsync as jest.Mock).mock.calls[0][0];
@@ -154,8 +135,8 @@ describe('session-notifications', () => {
   });
 
   describe('sendLeaveWarningNotification', () => {
-    it('does nothing when notifications are disabled', async () => {
-      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: false });
+    it('does nothing when OS notification permission is not granted', async () => {
+      (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'denied' });
 
       await sendLeaveWarningNotification();
 
@@ -163,8 +144,6 @@ describe('session-notifications', () => {
     });
 
     it('delivers immediately (not scheduled for later), mentioning the grace period', async () => {
-      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: true });
-
       await sendLeaveWarningNotification();
 
       expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(1);
@@ -176,8 +155,6 @@ describe('session-notifications', () => {
 
   describe('cancelFailedNotification / cancelSessionNotifications', () => {
     it('cancels a pending failed notification, and is a no-op if none is pending', async () => {
-      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: true });
-
       await scheduleFailedNotification();
       await cancelFailedNotification();
       expect(Notifications.cancelScheduledNotificationAsync).toHaveBeenCalledWith('scheduled-id');
@@ -188,8 +165,6 @@ describe('session-notifications', () => {
     });
 
     it('cancels both a pending completed and failed notification', async () => {
-      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: true });
-
       await scheduleCompletedNotification(makeSession());
       await scheduleFailedNotification();
       (Notifications.cancelScheduledNotificationAsync as jest.Mock).mockClear();
@@ -208,7 +183,6 @@ describe('session-notifications', () => {
     });
 
     it('forgets any remembered ids, so a later cancel is a no-op rather than cancelling stale ids', async () => {
-      await settingsRepository.saveSettings({ ...DEFAULT_SETTINGS, notificationsEnabled: true });
       await scheduleCompletedNotification(makeSession());
 
       await cancelAllPendingSessionNotifications();

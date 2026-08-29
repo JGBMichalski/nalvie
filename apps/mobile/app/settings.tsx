@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { SESSION_PRESET_MINUTES, type Settings } from '@nalvie/core';
@@ -13,7 +12,6 @@ import { SelectField } from '../components/SelectField';
 import { TankBackdrop } from '../components/TankBackdrop';
 import { useAmbientSound } from '../hooks/useAmbientSound';
 import { DEFAULT_SETTINGS } from '../lib/default-settings';
-import { hasNotificationPermission, resolveNotificationsEnabled } from '../lib/notification-permissions';
 import { settingsRepository } from '../lib/repository';
 import { SOMAFM_STATIONS, somafmStationName } from '../lib/somafm-stations';
 import { theme } from '../theme';
@@ -33,7 +31,6 @@ const SOMAFM_STATION_OPTIONS = SOMAFM_STATIONS.map((station) => ({ label: statio
 
 export default function SettingsScreen() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [notificationsGranted, setNotificationsGranted] = useState(false);
   const [stationPickerOpen, setStationPickerOpen] = useState(false);
   const [previewPlaying, setPreviewPlaying] = useState(false);
 
@@ -49,31 +46,10 @@ export default function SettingsScreen() {
     settingsRepository.getSettings().then(setSettings);
   }, []);
 
-  // Re-checked on every focus — the user can revoke (or, via the
-  // deep-link-to-system-settings path below, grant) notification
-  // permission from outside the app
-  useFocusEffect(
-    useCallback(() => {
-      hasNotificationPermission().then(setNotificationsGranted);
-    }, []),
-  );
-
   const save = useCallback((next: Settings) => {
     setSettings(next);
     settingsRepository.saveSettings(next);
   }, []);
-
-  const onToggleNotifications = useCallback(
-    async (wantsEnabled: boolean) => {
-      const notificationsEnabled = await resolveNotificationsEnabled(wantsEnabled);
-      setNotificationsGranted(notificationsEnabled);
-      save({ ...settings, notificationsEnabled });
-    },
-    [save, settings],
-  );
-
-  // Get the notification state from the setting config and the OS.
-  const notificationsOn = settings.notificationsEnabled && notificationsGranted;
 
   return (
     <TankBackdrop>
@@ -145,11 +121,6 @@ export default function SettingsScreen() {
             value={settings.darkModeOverride}
             onChange={(darkModeOverride) => save({ ...settings, darkModeOverride })}
           />
-        </GlassPanel>
-
-        <GlassPanel style={[styles.row, styles.toggleRow]}>
-          <Text style={styles.label}>Notifications</Text>
-          <Switch value={notificationsOn} onValueChange={onToggleNotifications} accessibilityLabel="Notifications" />
         </GlassPanel>
       </SafeAreaView>
 
