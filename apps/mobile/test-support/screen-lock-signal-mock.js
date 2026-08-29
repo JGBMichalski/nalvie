@@ -7,4 +7,6 @@
 module.exports = {
   addLockedListener: jest.fn(() => ({ remove: jest.fn() })),
   addUnlockedListener: jest.fn(() => ({ remove: jest.fn() })),
+  scheduleNativeAudioStop: jest.fn(),
+  cancelNativeAudioStop: jest.fn(),
 };

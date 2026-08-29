@@ -1,11 +1,12 @@
 import { act, renderHook } from '@testing-library/react-native';
-import { GRACE_PERIOD_MS, MAX_PAUSE_MS, MIN_SESSION_MINUTES } from '@nalvie/core';
+import { GRACE_PERIOD_MS, MAX_PAUSE_MS, MIN_SESSION_MINUTES, completesAt } from '@nalvie/core';
 import * as Notifications from 'expo-notifications';
 
 import { createInMemorySessionRepository } from '../lib/in-memory-session-repository';
 import { resetSettingsRepositoryForTests, settingsRepository } from '../lib/repository';
 import { DEFAULT_SETTINGS } from '../lib/default-settings';
 import { useSessionLoop } from '../hooks/useSessionLoop';
+import { cancelNativeAudioStop, scheduleNativeAudioStop } from '../modules/screen-lock-signal';
 import { makeFakeAppState } from './test-utils/fake-app-state';
 
 jest.mock('expo-notifications', () => ({
@@ -199,6 +200,83 @@ describe('useSessionLoop', () => {
     act(() => result.current.togglePause()); // attempt a second pause — should no-op
     expect(result.current.isPaused).toBe(false);
     expect(result.current.session?.pausedMs).toBe(pausedMsAfterFirstUse);
+  });
+
+  describe('native audio stop (Android-only, doesn\'t depend on JS running while backgrounded)', () => {
+    it('schedules a native stop at the session\'s completion instant when it starts', async () => {
+      const repo = createInMemorySessionRepository();
+      const { result } = renderHook(() => useSessionLoop(repo));
+      await act(async () => {});
+
+      await act(async () => {
+        await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+      });
+
+      expect(scheduleNativeAudioStop).toHaveBeenCalledWith(completesAt(result.current.session!));
+    });
+
+    it('cancels the native stop on pause, and reschedules it (credited pause time included) on resume', async () => {
+      const repo = createInMemorySessionRepository();
+      const { result } = renderHook(() => useSessionLoop(repo));
+      await act(async () => {});
+
+      await act(async () => {
+        await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+      });
+      (cancelNativeAudioStop as jest.Mock).mockClear();
+      (scheduleNativeAudioStop as jest.Mock).mockClear();
+
+      act(() => result.current.togglePause());
+      expect(cancelNativeAudioStop).toHaveBeenCalledTimes(1);
+
+      jest.advanceTimersByTime(30_000);
+      act(() => result.current.togglePause()); // resume
+
+      expect(scheduleNativeAudioStop).toHaveBeenCalledWith(completesAt(result.current.session!));
+    });
+
+    it('reschedules the native stop to the grace deadline while genuinely leaving, and back to the completion instant on early return', async () => {
+      const repo = createInMemorySessionRepository();
+      const appState = makeFakeAppState();
+      const { result } = renderHook(() => useSessionLoop(repo, appState as never));
+      await act(async () => {});
+
+      await act(async () => {
+        await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+      });
+      const session = result.current.session!;
+      (scheduleNativeAudioStop as jest.Mock).mockClear();
+      jest.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+      await act(async () => {
+        appState.emit('background');
+      });
+      expect(scheduleNativeAudioStop).toHaveBeenLastCalledWith(Date.now() + GRACE_PERIOD_MS);
+
+      await act(async () => {
+        jest.advanceTimersByTime(GRACE_PERIOD_MS - 1000); // returns within the grace period
+        appState.emit('active');
+      });
+      expect(scheduleNativeAudioStop).toHaveBeenLastCalledWith(completesAt(session));
+    });
+
+    it('cancels the native stop once the session resolves', async () => {
+      const repo = createInMemorySessionRepository();
+      const { result } = renderHook(() => useSessionLoop(repo));
+      await act(async () => {});
+
+      await act(async () => {
+        await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+      });
+      (cancelNativeAudioStop as jest.Mock).mockClear();
+
+      await act(async () => {
+        jest.advanceTimersByTime(MIN_SESSION_MINUTES * 60_000 + 1000);
+        await Promise.resolve();
+      });
+
+      expect(cancelNativeAudioStop).toHaveBeenCalled();
+    });
   });
 
   it('does not fail the session when the app is backgrounded while deliberately paused', async () => {

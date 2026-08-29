@@ -3,6 +3,7 @@ import {
   MAX_PAUSE_MS,
   applyPause,
   completeSession,
+  completesAt,
   createSession,
   elapsedMs,
   failSession,
@@ -36,6 +37,22 @@ describe("session", () => {
     const startedAt = new Date("2026-01-01T00:00:00.000Z").toISOString();
     const now = new Date("2026-01-01T00:10:00.000Z");
     expect(isSessionComplete({ startedAt, plannedDurationMinutes: 10, pausedMs: 0 }, now)).toBe(true);
+  });
+
+  describe("completesAt", () => {
+    it("is startedAt + plannedDurationMinutes when there's no credited pause", () => {
+      const startedAt = new Date("2026-01-01T00:00:00.000Z").toISOString();
+      expect(completesAt({ startedAt, plannedDurationMinutes: 10, pausedMs: 0 })).toBe(
+        new Date("2026-01-01T00:10:00.000Z").getTime(),
+      );
+    });
+
+    it("pushes the instant back by any credited pause time", () => {
+      const startedAt = new Date("2026-01-01T00:00:00.000Z").toISOString();
+      expect(completesAt({ startedAt, plannedDurationMinutes: 10, pausedMs: 5_000 })).toBe(
+        new Date("2026-01-01T00:10:05.000Z").getTime(),
+      );
+    });
   });
 
   describe("finalizeInterruptedSession", () => {

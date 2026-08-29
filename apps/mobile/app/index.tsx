@@ -78,16 +78,12 @@ export default function HomeScreen() {
   // Ambience plays only while actively focusing (not paused or session-muted)
   // Resets to the start of the loop once the session actually resolves.
   const ambienceShouldPlay = phase === 'in-progress' && !isPaused && !isSessionMuted && soundEnabled;
-  // Only recomputes when remainingSeconds ticks over
-  const remainingSeconds = Math.ceil(remainingMs / 1000);
   const lockScreenMetadata = useMemo(
     () => ({
-      title: isPaused ? 'Paused' : `${formatRemaining(remainingMs)} remaining`,
+      title: isPaused ? 'Paused' : `${session?.plannedDurationMinutes ?? 0} min session`,
       artist: 'Nalvie focus session',
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately
-    // keyed on remainingSeconds, not remainingMs, to enforce the once/second cadence
-    [remainingSeconds, isPaused],
+    [session?.plannedDurationMinutes, isPaused],
   );
   useAmbientSound(ambienceShouldPlay, ambientSource, phase !== 'in-progress', {
     metadata: lockScreenMetadata,

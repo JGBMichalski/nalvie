@@ -3,6 +3,7 @@ import {
   UNLOCK_POOL,
   applyPause,
   completeSession,
+  completesAt,
   computeStreak,
   createSession,
   eligiblePoolItems,
@@ -12,6 +13,7 @@ import {
   hasUsedPause,
   isSessionComplete,
   unlockPoolItemToTankItem,
+  GRACE_PERIOD_MS,
   type FocusSession,
   type SessionRepository,
   type StreakInfo,
@@ -29,6 +31,7 @@ import {
   scheduleFailedNotification,
   sendLeaveWarningNotification,
 } from '../lib/session-notifications';
+import { cancelNativeAudioStop, scheduleNativeAudioStop } from '../modules/screen-lock-signal';
 
 export type SessionPhase = 'idle' | 'in-progress' | 'toast-complete' | 'toast-failed';
 
@@ -74,6 +77,7 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
 
   const finishFail = useCallback(
     async (current: FocusSession) => {
+      cancelNativeAudioStop();
       await cancelCompletedNotification();
       await repository.saveSession(failSession(current));
       setSession(null);
@@ -105,6 +109,7 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
         isFreshUnlock && typeof poolItem?.eligibility === 'object' && 'minStreakDays' in poolItem.eligibility;
 
       await cancelSessionNotifications();
+      cancelNativeAudioStop();
       await repository.saveTankItem(item);
       await repository.saveSession(completeSession(current));
       setSession(null);
@@ -154,8 +159,10 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
       if (graceClockRunning) {
         void sendLeaveWarningNotification();
         void scheduleFailedNotification();
+        scheduleNativeAudioStop(Date.now() + GRACE_PERIOD_MS);
       } else {
         void cancelFailedNotification();
+        if (sessionRef.current) scheduleNativeAudioStop(completesAt(sessionRef.current));
       }
     },
   );
@@ -170,6 +177,7 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
       setIsSessionMuted(false);
       setPhase('in-progress');
       await scheduleCompletedNotification(created);
+      scheduleNativeAudioStop(completesAt(created));
     },
     [repository],
   );
@@ -184,11 +192,13 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
       setSession(resumed);
       setIsPaused(false);
       void scheduleCompletedNotification(resumed);
+      scheduleNativeAudioStop(completesAt(resumed));
     } else if (!hasUsedPause(session)) {
       pauseStartedAtRef.current = Date.now();
       setIsPaused(true);
       // Paused time doesn't count toward completion
       void cancelCompletedNotification();
+      cancelNativeAudioStop();
     }
   }, [session, isPaused]);
 

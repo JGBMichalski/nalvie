@@ -21,6 +21,11 @@ export function isSessionComplete(
   return elapsedMs(session, now) >= session.plannedDurationMinutes * 60_000;
 }
 
+/** Absolute epoch ms at which a session is due to complete. */
+export function completesAt(session: Pick<FocusSession, "startedAt" | "plannedDurationMinutes" | "pausedMs">): number {
+  return new Date(session.startedAt).getTime() + session.plannedDurationMinutes * 60_000 + session.pausedMs;
+}
+
 /**
  * Call once on app launch. If a session was left in-progress (force-quit
  * before it could be finalized), it's retroactively marked failed — per the

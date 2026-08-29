@@ -1,6 +1,6 @@
 import type { EventSubscription } from 'expo-modules-core';
 import * as Notifications from 'expo-notifications';
-import { GRACE_PERIOD_MS, UNLOCK_POOL, type FocusSession } from '@nalvie/core';
+import { GRACE_PERIOD_MS, UNLOCK_POOL, completesAt, type FocusSession } from '@nalvie/core';
 
 import { hasNotificationPermission } from './notification-permissions';
 import { settingsRepository } from './repository';
@@ -35,15 +35,12 @@ export async function scheduleCompletedNotification(session: FocusSession): Prom
   await cancelCompletedNotification();
   if (!(await canNotify())) return;
 
-  const completesAt =
-    new Date(session.startedAt).getTime() + session.plannedDurationMinutes * 60_000 + session.pausedMs;
-
   scheduledIds.completed = await Notifications.scheduleNotificationAsync({
     content: {
       title: 'Nalvie',
       body: `Your tank grew! A ${itemName(session.selectedItemId)} was added while you were away.`,
     },
-    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(completesAt) },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(completesAt(session)) },
   });
 }
 
