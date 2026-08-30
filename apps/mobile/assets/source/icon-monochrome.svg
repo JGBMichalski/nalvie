@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Nalvie app icon — flat single-color silhouette (for Android themed/monochrome icon). -->
+  <g transform="translate(512 512)" fill="none" stroke="#ffffff">
+    <path d="M -168.3 231.6 A 286 286 0 1 1 168.3 231.6" stroke-width="112" stroke-linecap="round"/>
+    <circle cx="0" cy="292" r="46" fill="#ffffff" stroke="none"/>
+  </g>
+</svg>

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Nalvie app icon — foreground layer only (transparent bg), for Android adaptive icon / splash. -->
+  <defs>
+    <linearGradient id="clay" x1="15%" y1="10%" x2="85%" y2="95%">
+      <stop offset="0%" stop-color="#f7fbff"/>
+      <stop offset="55%" stop-color="#dceefb"/>
+      <stop offset="100%" stop-color="#a9cfe9"/>
+    </linearGradient>
+    <radialGradient id="dot" cx="35%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#b7d8ee"/>
+    </radialGradient>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+    <filter id="blur" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="38"/>
+    </filter>
+  </defs>
+  <g transform="translate(512 512)">
+    <path d="M -168.3 231.6 A 286 286 0 1 1 168.3 231.6"
+          fill="none" stroke="#000" stroke-opacity="0.5" stroke-width="120"
+          stroke-linecap="round" filter="url(#blur)" transform="translate(0 28)"/>
+    <circle cx="0" cy="292" r="52" fill="#000" opacity="0.5" filter="url(#blur)" transform="translate(0 24)"/>
+    <path d="M -168.3 231.6 A 286 286 0 1 1 168.3 231.6"
+          fill="none" stroke="url(#clay)" stroke-width="112" stroke-linecap="round"/>
+    <path d="M -168.3 231.6 A 286 286 0 1 1 168.3 231.6"
+          fill="none" stroke="#ffffff" stroke-opacity="0.5" stroke-width="38"
+          stroke-linecap="round" filter="url(#soft)" transform="translate(-8 -14)"/>
+    <path d="M -168.3 231.6 A 286 286 0 1 1 168.3 231.6"
+          fill="none" stroke="#7ca6c4" stroke-opacity="0.45" stroke-width="28"
+          stroke-linecap="round" filter="url(#soft)" transform="translate(10 18)"/>
+    <circle cx="0" cy="292" r="46" fill="url(#dot)"/>
+  </g>
+</svg>
