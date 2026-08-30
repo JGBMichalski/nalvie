@@ -3,7 +3,7 @@ import Svg, { Defs, Ellipse, LinearGradient as SvgLinearGradient, Path, RadialGr
 
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { theme } from '../theme';
+import { useTheme } from '../lib/ThemeProvider';
 import { useOscillation } from '../hooks/useOscillation';
 
 const WATER_MID = '#0a1c2e';
@@ -71,8 +71,9 @@ function Motes() {
   );
 }
 
-// Full-bleed dark backdrop the tank renders inside.
+// Full-bleed backdrop the tank renders inside.
 export function TankBackdrop({ children }: { children: React.ReactNode }) {
+  const theme = useTheme();
   return (
     <LinearGradient
       colors={[theme.colors.tankBackgroundFrom, WATER_MID, theme.colors.tankBackgroundTo]}

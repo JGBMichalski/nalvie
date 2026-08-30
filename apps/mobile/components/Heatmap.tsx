@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 
 import { heatmapIntensity, type HeatmapDay } from '../lib/stats-view';
-import { theme } from '../theme';
+import { useTheme } from '../lib/ThemeProvider';
 
 const CELL_GAP = 3;
 const DAYS_PER_WEEK = 7;
@@ -26,6 +26,25 @@ function chunkIntoWeeks(days: HeatmapDay[]): HeatmapDay[][] {
 // columns, oldest to newest left to right, days-of-week stacked within.
 // Cells stretch to fill the available width rather than a fixed size.
 export function Heatmap({ days }: { days: HeatmapDay[] }) {
+  const theme = useTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        grid: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          width: '100%',
+        },
+        week: {
+          gap: CELL_GAP,
+        },
+        cell: {
+          borderRadius: 2,
+          backgroundColor: theme.colors.fabBackground,
+        },
+      }),
+    [theme],
+  );
   const weeks = chunkIntoWeeks(days);
   const [width, setWidth] = useState(0);
 
@@ -59,18 +78,3 @@ export function Heatmap({ days }: { days: HeatmapDay[] }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  grid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  week: {
-    gap: CELL_GAP,
-  },
-  cell: {
-    borderRadius: 2,
-    backgroundColor: theme.colors.fabBackground,
-  },
-});

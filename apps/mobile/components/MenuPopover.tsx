@@ -1,10 +1,11 @@
+import { useMemo } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Link, router } from 'expo-router';
 import { UNLOCK_POOL, unlockPoolItemToTankItem } from '@nalvie/core';
 
 import { GlassPanel } from './GlassPanel';
 import { clearAllData, sessionRepository } from '../lib/repository';
-import { theme } from '../theme';
+import { useTheme } from '../lib/ThemeProvider';
 
 // A small dropdown anchored under the hamburger button. 
 export function MenuPopover({
@@ -18,6 +19,35 @@ export function MenuPopover({
   onClose: () => void;
   onDataChanged?: () => void;
 }) {
+  const theme = useTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        backdrop: {
+          flex: 1,
+        },
+        popover: {
+          position: 'absolute',
+          right: 20,
+          width: 220,
+        },
+        panel: {
+          padding: 8,
+          gap: 4,
+        },
+        item: {
+          paddingVertical: 10,
+          paddingHorizontal: 8,
+        },
+        itemText: {
+          color: theme.colors.textPrimary,
+          fontSize: 15,
+          fontWeight: '600',
+        },
+      }),
+    [theme],
+  );
+
   async function unlockAllCreatures() {
     const unlockedAt = new Date().toISOString();
     await Promise.all(
@@ -60,27 +90,3 @@ export function MenuPopover({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-  },
-  popover: {
-    position: 'absolute',
-    right: 20,
-    width: 220,
-  },
-  panel: {
-    padding: 8,
-    gap: 4,
-  },
-  item: {
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-  },
-  itemText: {
-    color: theme.colors.textPrimary,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-});

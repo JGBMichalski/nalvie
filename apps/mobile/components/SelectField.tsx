@@ -1,7 +1,8 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { theme } from '../theme';
+import { useTheme } from '../lib/ThemeProvider';
 
 // The trigger for a PickerSheet — shows the current value and a chevron,
 // tap to open the sheet. Presentational only; the caller owns open state.
@@ -14,6 +15,30 @@ export function SelectField({
   accessibilityLabel: string;
   onPress: () => void;
 }) {
+  const theme = useTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        field: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          paddingVertical: 8,
+          paddingHorizontal: 12,
+          borderRadius: theme.radii.glass,
+          backgroundColor: theme.colors.glassBackground,
+          borderColor: theme.colors.glassBorder,
+          borderWidth: StyleSheet.hairlineWidth,
+        },
+        value: {
+          color: theme.colors.textPrimary,
+          fontWeight: '600',
+          fontSize: 13,
+        },
+      }),
+    [theme],
+  );
+
   return (
     <Pressable
       style={styles.field}
@@ -26,22 +51,3 @@ export function SelectField({
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: theme.radii.glass,
-    backgroundColor: theme.colors.glassBackground,
-    borderColor: theme.colors.glassBorder,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  value: {
-    color: theme.colors.textPrimary,
-    fontWeight: '600',
-    fontSize: 13,
-  },
-});

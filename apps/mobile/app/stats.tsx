@@ -10,9 +10,10 @@ import { Heatmap } from '../components/Heatmap';
 import { TankBackdrop } from '../components/TankBackdrop';
 import { sessionRepository } from '../lib/repository';
 import { buildHeatmapDays, formatFocusDuration, isStreakAtRisk } from '../lib/stats-view';
-import { theme } from '../theme';
+import { useTheme } from '../lib/ThemeProvider';
 
 export default function StatsScreen() {
+  const theme = useTheme();
   const [sessions, setSessions] = useState<FocusSession[]>([]);
 
   const load = useCallback(async () => {
@@ -46,6 +47,58 @@ export default function StatsScreen() {
         { totalFocusMinutes: 0, completedSessions: 0, failedSessions: 0 },
       ),
     [dailyStats],
+  );
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          padding: 20,
+          gap: 16,
+        },
+        title: {
+          color: theme.colors.textPrimary,
+          fontSize: 22,
+          fontWeight: '600',
+        },
+        headerRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+        },
+        header: {
+          gap: 4,
+        },
+        row: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          paddingVertical: 8,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: theme.colors.glassBorder,
+        },
+        lastRow: {
+          borderBottomWidth: 0,
+        },
+        label: {
+          color: theme.colors.textSecondary,
+          fontSize: 14,
+        },
+        value: {
+          color: theme.colors.textPrimary,
+          fontSize: 14,
+          fontWeight: '600',
+        },
+        scrollContent: {
+          paddingVertical: 8,
+          gap: 12,
+        },
+        emptyMessage: {
+          color: theme.colors.textSecondary,
+          fontSize: 13,
+        },
+      }),
+    [theme],
   );
 
   return (
@@ -92,51 +145,3 @@ export default function StatsScreen() {
     </TankBackdrop>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    gap: 16,
-  },
-  title: {
-    color: theme.colors.textPrimary,
-    fontSize: 22,
-    fontWeight: '600',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  header: {
-    gap: 4,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.glassBorder,
-  },
-  lastRow: {
-    borderBottomWidth: 0,
-  },
-  label: {
-    color: theme.colors.textSecondary,
-    fontSize: 14,
-  },
-  value: {
-    color: theme.colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  scrollContent: {
-    paddingVertical: 8,
-    gap: 12,
-  },
-  emptyMessage: {
-    color: theme.colors.textSecondary,
-    fontSize: 13,
-  },
-});

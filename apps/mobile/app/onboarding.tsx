@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,7 +8,7 @@ import { GlassPanel } from '../components/GlassPanel';
 import { TankBackdrop } from '../components/TankBackdrop';
 import { TankScene } from '../components/TankScene';
 import { completeOnboarding } from '../lib/onboarding';
-import { theme } from '../theme';
+import { useTheme } from '../lib/ThemeProvider';
 
 interface Slide {
   headline: string;
@@ -46,6 +46,7 @@ const SLIDES: Slide[] = [
 ];
 
 export default function OnboardingScreen() {
+  const theme = useTheme();
   const [step, setStep] = useState(0);
   const isLastSlide = step === SLIDES.length - 1;
   const slide = SLIDES[step];
@@ -54,6 +55,57 @@ export default function OnboardingScreen() {
     await completeOnboarding();
     router.replace('/');
   }, []);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          padding: 20,
+          justifyContent: 'space-between',
+        },
+        skip: {
+          alignSelf: 'flex-end',
+        },
+        skipText: {
+          color: theme.colors.textSecondary,
+          fontSize: 15,
+        },
+        content: {
+          flex: 1,
+          justifyContent: 'center',
+          gap: 20,
+        },
+        stage: {
+          height: 220,
+        },
+        panel: {
+          gap: 8,
+        },
+        headline: {
+          color: theme.colors.textPrimary,
+          fontSize: 24,
+          fontWeight: '700',
+        },
+        body: {
+          color: theme.colors.textSecondary,
+          fontSize: 15,
+        },
+        primaryButton: {
+          alignSelf: 'stretch',
+          backgroundColor: theme.colors.fabBackground,
+          borderRadius: theme.radii.glass,
+          paddingVertical: 16,
+          alignItems: 'center',
+        },
+        primaryButtonText: {
+          color: theme.colors.fabIcon,
+          fontSize: 16,
+          fontWeight: '600',
+        },
+      }),
+    [theme],
+  );
 
   return (
     <TankBackdrop>
@@ -84,50 +136,3 @@ export default function OnboardingScreen() {
     </TankBackdrop>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'space-between',
-  },
-  skip: {
-    alignSelf: 'flex-end',
-  },
-  skipText: {
-    color: theme.colors.textSecondary,
-    fontSize: 15,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    gap: 20,
-  },
-  stage: {
-    height: 220,
-  },
-  panel: {
-    gap: 8,
-  },
-  headline: {
-    color: theme.colors.textPrimary,
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  body: {
-    color: theme.colors.textSecondary,
-    fontSize: 15,
-  },
-  primaryButton: {
-    alignSelf: 'stretch',
-    backgroundColor: theme.colors.fabBackground,
-    borderRadius: theme.radii.glass,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: theme.colors.fabIcon,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

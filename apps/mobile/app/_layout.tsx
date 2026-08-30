@@ -7,6 +7,18 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import '../lib/configure-notifications';
 import { requestNotificationPermission } from '../lib/notification-permissions';
+import { ThemeProvider, useThemeContext } from '../lib/ThemeProvider';
+
+function SystemBars() {
+  const { colorScheme } = useThemeContext();
+  const barStyle = colorScheme === 'light' ? 'dark' : 'light';
+  return (
+    <>
+      <StatusBar style={barStyle} />
+      <NavigationBar hidden style={barStyle} />
+    </>
+  );
+}
 
 export default function RootLayout() {
   useEffect(() => {
@@ -16,11 +28,12 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style="light" />
-        <NavigationBar hidden style="light" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-        </Stack>
+        <ThemeProvider>
+          <SystemBars />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+          </Stack>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

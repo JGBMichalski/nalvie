@@ -1,6 +1,7 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { theme } from '../theme';
+import { useTheme } from '../lib/ThemeProvider';
 
 export interface SegmentedControlOption<T> {
   label: string;
@@ -17,6 +18,39 @@ export function SegmentedControl<T extends string | number | boolean | null>({
   value: T;
   onChange: (value: T) => void;
 }) {
+  const theme = useTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        row: {
+          flexDirection: 'row',
+          gap: 8,
+        },
+        segment: {
+          flex: 1,
+          paddingVertical: 10,
+          borderRadius: theme.radii.glass,
+          backgroundColor: theme.colors.glassBackground,
+          borderColor: theme.colors.glassBorder,
+          borderWidth: StyleSheet.hairlineWidth,
+          alignItems: 'center',
+        },
+        segmentSelected: {
+          backgroundColor: theme.colors.fabBackground,
+          borderColor: theme.colors.fabBackground,
+        },
+        label: {
+          color: theme.colors.textPrimary,
+          fontWeight: '600',
+          fontSize: 13,
+        },
+        labelSelected: {
+          color: theme.colors.fabIcon,
+        },
+      }),
+    [theme],
+  );
+
   return (
     <View style={styles.row}>
       {options.map((option) => {
@@ -37,31 +71,3 @@ export function SegmentedControl<T extends string | number | boolean | null>({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  segment: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: theme.radii.glass,
-    backgroundColor: theme.colors.glassBackground,
-    borderColor: theme.colors.glassBorder,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-  },
-  segmentSelected: {
-    backgroundColor: theme.colors.fabBackground,
-    borderColor: theme.colors.fabBackground,
-  },
-  label: {
-    color: theme.colors.textPrimary,
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  labelSelected: {
-    color: theme.colors.fabIcon,
-  },
-});

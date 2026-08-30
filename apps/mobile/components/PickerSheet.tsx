@@ -1,7 +1,8 @@
+import { useMemo } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { theme } from '../theme';
+import { useTheme } from '../lib/ThemeProvider';
 
 export interface PickerOption<T> {
   label: string;
@@ -25,6 +26,58 @@ export function PickerSheet<T extends string | number>({
   onSelect: (value: T) => void;
   onClose: () => void;
 }) {
+  const theme = useTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        backdrop: {
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        },
+        sheet: {
+          backgroundColor: theme.colors.tankBackgroundTo,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          padding: 24,
+          maxHeight: '70%',
+          gap: 16,
+        },
+        title: {
+          color: theme.colors.textPrimary,
+          fontSize: 18,
+          fontWeight: '600',
+        },
+        option: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingVertical: 14,
+          paddingHorizontal: 16,
+          borderRadius: theme.radii.glass,
+          backgroundColor: theme.colors.glassBackground,
+          borderColor: theme.colors.glassBorder,
+          borderWidth: StyleSheet.hairlineWidth,
+          marginBottom: 10,
+        },
+        optionSelected: {
+          borderColor: theme.colors.fabBackground,
+        },
+        optionText: {
+          color: theme.colors.textPrimary,
+          fontSize: 15,
+          fontWeight: '600',
+        },
+        optionTextSelected: {
+          color: theme.colors.fabBackground,
+        },
+        check: {
+          color: theme.colors.fabBackground,
+          fontWeight: '700',
+        },
+      }),
+    [theme],
+  );
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} testID="picker-sheet-backdrop" />
@@ -58,50 +111,3 @@ export function PickerSheet<T extends string | number>({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  sheet: {
-    backgroundColor: theme.colors.tankBackgroundTo,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    maxHeight: '70%',
-    gap: 16,
-  },
-  title: {
-    color: theme.colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  option: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: theme.radii.glass,
-    backgroundColor: theme.colors.glassBackground,
-    borderColor: theme.colors.glassBorder,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: 10,
-  },
-  optionSelected: {
-    borderColor: theme.colors.fabBackground,
-  },
-  optionText: {
-    color: theme.colors.textPrimary,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  optionTextSelected: {
-    color: theme.colors.fabBackground,
-  },
-  check: {
-    color: theme.colors.fabBackground,
-    fontWeight: '700',
-  },
-});

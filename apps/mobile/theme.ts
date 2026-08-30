@@ -1,9 +1,4 @@
-// Variant B ("full-bleed tank + glass overlay") design language, per
-// .scratch/v1-roadmap/issues/03-visual-design-direction.md. Dark/immersive
-// is the app's default look in both light and dark mode for now — a real
-// light variant is deferred to the Settings spec's theme toggle.
-
-export const theme = {
+export const darkTheme = {
   colors: {
     tankBackgroundFrom: '#112233',
     tankBackgroundTo: '#001018',
@@ -20,3 +15,45 @@ export const theme = {
     fab: 38,
   },
 } as const;
+
+export const lightTheme = {
+  colors: {
+    tankBackgroundFrom: '#bfe9f5',
+    tankBackgroundTo: '#5fb4d4',
+    glassBackground: 'rgba(255, 255, 255, 0.45)',
+    glassBorder: 'rgba(0, 40, 60, 0.15)',
+    glassText: '#05303f',
+    fabBackground: '#0f9e7f',
+    fabIcon: '#ffffff',
+    textPrimary: '#05303f',
+    textSecondary: 'rgba(5, 48, 63, 0.65)',
+  },
+  radii: {
+    glass: 16,
+    fab: 38,
+  },
+} as const;
+
+export type Theme = {
+  colors: { [K in keyof typeof darkTheme.colors]: string };
+  radii: typeof darkTheme.radii;
+};
+
+export type ColorScheme = 'light' | 'dark';
+
+// Resolves the tri-state override (null = follow system) against the current
+// system scheme into a concrete palette.
+export function resolveColorScheme(
+  darkModeOverride: boolean | null,
+  systemScheme: ColorScheme,
+): ColorScheme {
+  if (darkModeOverride === null) return systemScheme;
+  return darkModeOverride ? 'dark' : 'light';
+}
+
+export function themeForScheme(scheme: ColorScheme): Theme {
+  return scheme === 'light' ? lightTheme : darkTheme;
+}
+
+// Back-compat default
+export const theme = darkTheme;

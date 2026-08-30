@@ -1,9 +1,10 @@
+import { useMemo } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { unlockRequirementLabel, type UnlockPoolItem } from '@nalvie/core';
 
 import { TankItemVisual } from './TankItemVisual';
-import { theme } from '../theme';
+import { useTheme } from '../lib/ThemeProvider';
 
 const ITEM_VISUAL_SIZE = 48;
 
@@ -25,6 +26,75 @@ export function FishPickerSheet({
   onClose: () => void;
   onSelect: (itemId: string) => void;
 }) {
+  const theme = useTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        backdrop: {
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        },
+        sheet: {
+          backgroundColor: theme.colors.tankBackgroundTo,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          padding: 24,
+          maxHeight: '70%',
+          gap: 16,
+        },
+        title: {
+          color: theme.colors.textPrimary,
+          fontSize: 18,
+          fontWeight: '600',
+        },
+        row: {
+          gap: 12,
+          marginBottom: 12,
+        },
+        item: {
+          flex: 1,
+          paddingVertical: 16,
+          borderRadius: theme.radii.glass,
+          backgroundColor: theme.colors.glassBackground,
+          borderColor: theme.colors.glassBorder,
+          borderWidth: StyleSheet.hairlineWidth,
+          alignItems: 'center',
+          gap: 6,
+        },
+        itemLocked: {
+          opacity: 0.6,
+        },
+        stage: {
+          height: ITEM_VISUAL_SIZE,
+          justifyContent: 'center',
+        },
+        visualLocked: {
+          opacity: 0.4,
+        },
+        lockBadge: {
+          position: 'absolute',
+          alignSelf: 'center',
+        },
+        lockIcon: {
+          fontSize: 16,
+        },
+        itemName: {
+          color: theme.colors.textPrimary,
+          fontSize: 12,
+          fontWeight: '600',
+        },
+        itemNameLocked: {
+          color: theme.colors.textSecondary,
+        },
+        requirement: {
+          color: theme.colors.textSecondary,
+          fontSize: 10,
+          textAlign: 'center',
+        },
+      }),
+    [theme],
+  );
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} testID="fish-picker-backdrop" />
@@ -69,67 +139,3 @@ export function FishPickerSheet({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  sheet: {
-    backgroundColor: theme.colors.tankBackgroundTo,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    maxHeight: '70%',
-    gap: 16,
-  },
-  title: {
-    color: theme.colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  row: {
-    gap: 12,
-    marginBottom: 12,
-  },
-  item: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: theme.radii.glass,
-    backgroundColor: theme.colors.glassBackground,
-    borderColor: theme.colors.glassBorder,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    gap: 6,
-  },
-  itemLocked: {
-    opacity: 0.6,
-  },
-  stage: {
-    height: ITEM_VISUAL_SIZE,
-    justifyContent: 'center',
-  },
-  visualLocked: {
-    opacity: 0.4,
-  },
-  lockBadge: {
-    position: 'absolute',
-    alignSelf: 'center',
-  },
-  lockIcon: {
-    fontSize: 16,
-  },
-  itemName: {
-    color: theme.colors.textPrimary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  itemNameLocked: {
-    color: theme.colors.textSecondary,
-  },
-  requirement: {
-    color: theme.colors.textSecondary,
-    fontSize: 10,
-    textAlign: 'center',
-  },
-});

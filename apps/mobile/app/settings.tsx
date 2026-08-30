@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,7 +14,7 @@ import { useAmbientSound } from '../hooks/useAmbientSound';
 import { DEFAULT_SETTINGS } from '../lib/default-settings';
 import { settingsRepository } from '../lib/repository';
 import { SOMAFM_STATIONS, somafmStationName } from '../lib/somafm-stations';
-import { theme } from '../theme';
+import { useTheme, useThemeContext } from '../lib/ThemeProvider';
 
 const DARK_MODE_OPTIONS: { label: string; value: boolean | null }[] = [
   { label: 'System', value: null },
@@ -30,9 +30,66 @@ const SOUND_SOURCE_OPTIONS: { label: string; value: Settings['soundSource'] }[] 
 const SOMAFM_STATION_OPTIONS = SOMAFM_STATIONS.map((station) => ({ label: station.name, value: station.id }));
 
 export default function SettingsScreen() {
+  const theme = useTheme();
+  const { darkModeOverride, setDarkModeOverride } = useThemeContext();
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [stationPickerOpen, setStationPickerOpen] = useState(false);
   const [previewPlaying, setPreviewPlaying] = useState(false);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          padding: 20,
+          gap: 16,
+        },
+        title: {
+          color: theme.colors.textPrimary,
+          fontSize: 22,
+          fontWeight: '600',
+        },
+        headerRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+        },
+        row: {
+          gap: 10,
+        },
+        toggleRow: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        },
+        label: {
+          color: theme.colors.textSecondary,
+          fontSize: 14,
+        },
+        stationControls: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+        },
+        previewButton: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          paddingVertical: 8,
+          paddingHorizontal: 12,
+          borderRadius: theme.radii.glass,
+          backgroundColor: theme.colors.glassBackground,
+          borderColor: theme.colors.glassBorder,
+          borderWidth: StyleSheet.hairlineWidth,
+        },
+        previewButtonText: {
+          color: theme.colors.textPrimary,
+          fontWeight: '600',
+          fontSize: 13,
+        },
+      }),
+    [theme],
+  );
 
   // Lets a user preview a station before committing to it for a session
   useAmbientSound(previewPlaying, { type: 'somafm', stationId: settings.somafmStationId });
@@ -114,12 +171,14 @@ export default function SettingsScreen() {
         )}
 
         <GlassPanel style={styles.row}>
-          <Text style={styles.label}>Dark mode</Text>
-          {/* Only dark mode exists today. Need to build light mode. */}
+          <Text style={styles.label}>Theme</Text>
           <SegmentedControl
             options={DARK_MODE_OPTIONS}
-            value={settings.darkModeOverride}
-            onChange={(darkModeOverride) => save({ ...settings, darkModeOverride })}
+            value={darkModeOverride}
+            onChange={(nextOverride) => {
+              setDarkModeOverride(nextOverride);
+              setSettings((current) => ({ ...current, darkModeOverride: nextOverride }));
+            }}
           />
         </GlassPanel>
       </SafeAreaView>
@@ -135,54 +194,3 @@ export default function SettingsScreen() {
     </TankBackdrop>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    gap: 16,
-  },
-  title: {
-    color: theme.colors.textPrimary,
-    fontSize: 22,
-    fontWeight: '600',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  row: {
-    gap: 10,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  label: {
-    color: theme.colors.textSecondary,
-    fontSize: 14,
-  },
-  stationControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  previewButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: theme.radii.glass,
-    backgroundColor: theme.colors.glassBackground,
-    borderColor: theme.colors.glassBorder,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  previewButtonText: {
-    color: theme.colors.textPrimary,
-    fontWeight: '600',
-    fontSize: 13,
-  },
-});

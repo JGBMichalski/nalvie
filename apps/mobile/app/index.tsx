@@ -17,7 +17,7 @@ import { useSessionLoop } from '../hooks/useSessionLoop';
 import { DEFAULT_SETTINGS } from '../lib/default-settings';
 import { sessionRepository, settingsRepository } from '../lib/repository';
 import { SOMAFM_STATIONS, somafmStationName } from '../lib/somafm-stations';
-import { theme } from '../theme';
+import { useTheme } from '../lib/ThemeProvider';
 
 function formatRemaining(ms: number): string {
   const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
@@ -28,7 +28,117 @@ function formatRemaining(ms: number): string {
 
 // Home/Tank: the app's default screen
 export default function HomeScreen() {
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        overlay: {
+          flex: 1,
+          padding: 20,
+        },
+        streak: {
+          alignSelf: 'flex-start',
+        },
+        glassText: {
+          color: theme.colors.glassText,
+          fontSize: 13,
+        },
+        menuButton: {
+          position: 'absolute',
+          right: 20,
+          width: 44,
+          height: 44,
+          borderRadius: 12,
+          backgroundColor: theme.colors.glassBackground,
+          borderColor: theme.colors.glassBorder,
+          borderWidth: StyleSheet.hairlineWidth,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        menuIcon: {
+          color: theme.colors.textPrimary,
+          fontSize: 20,
+        },
+        fab: {
+          position: 'absolute',
+          alignSelf: 'center',
+          width: theme.radii.fab * 2,
+          height: theme.radii.fab * 2,
+          borderRadius: theme.radii.fab,
+          backgroundColor: theme.colors.fabBackground,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        sideButton: {
+          position: 'absolute',
+          width: 52,
+          height: 52,
+          borderRadius: 26,
+          backgroundColor: theme.colors.glassBackground,
+          borderColor: theme.colors.glassBorder,
+          borderWidth: StyleSheet.hairlineWidth,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        sideButtonLeft: {
+          left: 32,
+        },
+        sideButtonRight: {
+          right: 32,
+        },
+        playIcon: {
+          marginLeft: 3, // optical centering — the glyph's visual weight leans left
+        },
+        sessionChrome: {
+          position: 'absolute',
+          alignSelf: 'center',
+          alignItems: 'center',
+          gap: 12,
+        },
+        timerPanel: {
+          alignItems: 'center',
+        },
+        timerText: {
+          color: theme.colors.textPrimary,
+          fontSize: 32,
+          fontWeight: '200',
+        },
+        sessionButtons: {
+          flexDirection: 'row',
+          gap: 12,
+        },
+        pausePanel: {
+          alignItems: 'center',
+        },
+        pausePanelDisabled: {
+          opacity: 0.5,
+        },
+        pauseText: {
+          color: theme.colors.textPrimary,
+          fontWeight: '600',
+        },
+        attributionText: {
+          color: theme.colors.textSecondary,
+          fontSize: 11,
+        },
+        stationAttribution: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+        },
+        toast: {
+          position: 'absolute',
+          alignSelf: 'center',
+          maxWidth: '80%',
+        },
+        toastText: {
+          color: theme.colors.textPrimary,
+          textAlign: 'center',
+        },
+      }),
+    [theme],
+  );
   const [step, setStep] = useState<'idle' | 'fish' | 'duration'>('idle');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -247,109 +357,3 @@ export default function HomeScreen() {
     </TankBackdrop>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    padding: 20,
-  },
-  streak: {
-    alignSelf: 'flex-start',
-  },
-  glassText: {
-    color: theme.colors.glassText,
-    fontSize: 13,
-  },
-  menuButton: {
-    position: 'absolute',
-    right: 20,
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: theme.colors.glassBackground,
-    borderColor: theme.colors.glassBorder,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  menuIcon: {
-    color: theme.colors.textPrimary,
-    fontSize: 20,
-  },
-  fab: {
-    position: 'absolute',
-    alignSelf: 'center',
-    width: theme.radii.fab * 2,
-    height: theme.radii.fab * 2,
-    borderRadius: theme.radii.fab,
-    backgroundColor: theme.colors.fabBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sideButton: {
-    position: 'absolute',
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: theme.colors.glassBackground,
-    borderColor: theme.colors.glassBorder,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sideButtonLeft: {
-    left: 32,
-  },
-  sideButtonRight: {
-    right: 32,
-  },
-  playIcon: {
-    marginLeft: 3, // optical centering — the glyph's visual weight leans left
-  },
-  sessionChrome: {
-    position: 'absolute',
-    alignSelf: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  timerPanel: {
-    alignItems: 'center',
-  },
-  timerText: {
-    color: theme.colors.textPrimary,
-    fontSize: 32,
-    fontWeight: '200',
-  },
-  sessionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  pausePanel: {
-    alignItems: 'center',
-  },
-  pausePanelDisabled: {
-    opacity: 0.5,
-  },
-  pauseText: {
-    color: theme.colors.textPrimary,
-    fontWeight: '600',
-  },
-  attributionText: {
-    color: theme.colors.textSecondary,
-    fontSize: 11,
-  },
-  stationAttribution: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  toast: {
-    position: 'absolute',
-    alignSelf: 'center',
-    maxWidth: '80%',
-  },
-  toastText: {
-    color: theme.colors.textPrimary,
-    textAlign: 'center',
-  },
-});
