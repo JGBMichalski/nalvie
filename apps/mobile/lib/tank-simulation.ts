@@ -37,6 +37,7 @@ const BURST_FRACTION = 0.32; // Fraction of the burst period spent accelerating;
 const TURN_DURATION = 0.55; // Seconds for a full U-turn arc, nose sweeping through vertical.
 const TURN_DRAG = 1.1; // Extra drag while side-on to the flow mid-turn, in units of 1/sec — turning costs momentum.
 const MAX_SPEED_FACTOR = 2.2; // How much faster than cruiseSpeed a swimmer can go at the peak of a burst.
+const HORIZONTAL_BIAS = 0.55; // Damps vertical steering relative to horizontal, so fish-like creatures cruise on a flatter, more east/west path. Creatures that don't flip to face their travel direction (e.g. jellyfish) are exempt.
 
 function nextRandom(agent: Agent): number {
   'worklet';
@@ -213,7 +214,7 @@ export function stepAgents(agents: Agent[], width: number, height: number, dt: n
     if (bottom < WALL_MARGIN) steerY -= ((WALL_MARGIN - bottom) / WALL_MARGIN) * WALL_FORCE;
 
     if (steerX !== 0 || steerY !== 0) {
-      const desired = Math.atan2(steerY, steerX);
+      const desired = Math.atan2(profile.flips ? steerY * HORIZONTAL_BIAS : steerY, steerX);
       const turn = angleDelta(agent.heading, desired);
       const maxTurn = profile.turnRate * dt;
       agent.heading += Math.max(-maxTurn, Math.min(maxTurn, turn));

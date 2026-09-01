@@ -228,6 +228,41 @@ describe('facing', () => {
   });
 });
 
+describe('horizontal path bias', () => {
+  function isHorizontalDominant(heading: number) {
+    return Math.abs(Math.cos(heading)) > Math.abs(Math.sin(heading));
+  }
+
+  it("keeps a free-swimming fish's path horizontal-dominant most of the time", () => {
+    const agent = createAgent('clownfish', SIZE, WIDTH, HEIGHT);
+    agent.x = WIDTH / 2;
+    agent.y = HEIGHT / 2;
+
+    let horizontalDominant = 0;
+    let samples = 0;
+    for (let i = 0; i < Math.round(30 / DT); i++) {
+      stepAgents([agent], WIDTH, HEIGHT, DT);
+      samples++;
+      if (isHorizontalDominant(agent.heading)) horizontalDominant++;
+    }
+
+    // A brief vertical-ish moment mid-U-turn is fine; the fish should spend
+    // the vast majority of its time on a flatter, more east/west path.
+    expect(horizontalDominant / samples).toBeGreaterThan(0.85);
+  });
+
+  it('leaves the jellyfish free to swim straight up or down', () => {
+    const jellyfish = createAgent('jellyfish', SIZE, WIDTH, HEIGHT);
+    jellyfish.x = WIDTH / 2;
+    jellyfish.y = HEIGHT / 2;
+    jellyfish.heading = Math.PI / 2; // straight down
+
+    stepAgents([jellyfish], WIDTH, HEIGHT, DT);
+
+    expect(isHorizontalDominant(jellyfish.heading)).toBe(false);
+  });
+});
+
 describe('reproducibility', () => {
   it('produces identical runs from identical seeds', () => {
     const first = createAgents(['clownfish', 'guppy'], SIZE, WIDTH, HEIGHT);
