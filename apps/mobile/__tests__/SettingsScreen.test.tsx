@@ -1,12 +1,14 @@
 import { act, fireEvent } from '@testing-library/react-native';
 import { renderRouter, screen } from 'expo-router/testing-library';
 import { useAudioPlayer } from 'expo-audio';
+import { Alert } from 'react-native';
 
-import { resetSettingsRepositoryForTests, settingsRepository } from '../lib/repository';
+import { resetSessionRepositoryForTests, resetSettingsRepositoryForTests, sessionRepository, settingsRepository } from '../lib/repository';
 
 describe('<SettingsScreen />', () => {
   beforeEach(() => {
     resetSettingsRepositoryForTests();
+    resetSessionRepositoryForTests();
     (useAudioPlayer as jest.Mock).mockClear();
   });
 
@@ -184,6 +186,75 @@ describe('<SettingsScreen />', () => {
       await act(async () => {});
 
       expect(screen.getByLabelText('Preview station')).toBeTruthy();
+    });
+  });
+
+  describe('Clear tank', () => {
+    it('shows a Clear tank action', async () => {
+      renderRouter('./app', { initialUrl: '/settings' });
+      await act(async () => {});
+
+      expect(await screen.findByText('Clear tank')).toBeTruthy();
+    });
+
+    it('prompts for confirmation before clearing', async () => {
+      const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation();
+      renderRouter('./app', { initialUrl: '/settings' });
+      await act(async () => {});
+
+      fireEvent.press(await screen.findByText('Clear tank'));
+
+      expect(alertSpy).toHaveBeenCalledWith(
+        'Clear tank?',
+        expect.stringMatching(/fish you've unlocked/i),
+        expect.arrayContaining([expect.objectContaining({ text: 'Clear tank' })]),
+      );
+      alertSpy.mockRestore();
+    });
+
+    it('deletes every tank item once confirmed, without touching the unlocked-species ledger', async () => {
+      await sessionRepository.saveTankItem({
+        id: 'instance-1',
+        speciesId: 'clownfish',
+        name: 'Clownfish',
+        rarity: 'common',
+        unlockedAt: new Date().toISOString(),
+      });
+      const ownedBefore = await sessionRepository.listUnlockedSpecies();
+
+      const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_title, _msg, buttons) => {
+        const confirmButton = buttons?.find((button) => button.text === 'Clear tank');
+        confirmButton?.onPress?.();
+      });
+      renderRouter('./app', { initialUrl: '/settings' });
+      await act(async () => {});
+
+      fireEvent.press(await screen.findByText('Clear tank'));
+      await act(async () => {});
+
+      expect(await sessionRepository.listTankItems()).toEqual([]);
+      expect(await sessionRepository.listUnlockedSpecies()).toEqual(ownedBefore);
+      alertSpy.mockRestore();
+    });
+
+    it('does nothing when the confirmation is cancelled', async () => {
+      await sessionRepository.saveTankItem({
+        id: 'instance-1',
+        speciesId: 'clownfish',
+        name: 'Clownfish',
+        rarity: 'common',
+        unlockedAt: new Date().toISOString(),
+      });
+
+      const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation();
+      renderRouter('./app', { initialUrl: '/settings' });
+      await act(async () => {});
+
+      fireEvent.press(await screen.findByText('Clear tank'));
+      await act(async () => {});
+
+      expect(await sessionRepository.listTankItems()).toHaveLength(1);
+      alertSpy.mockRestore();
     });
   });
 });

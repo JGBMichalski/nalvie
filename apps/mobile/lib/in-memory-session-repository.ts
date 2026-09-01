@@ -30,6 +30,9 @@ export function createInMemorySessionRepository(): SessionRepository {
     async listTankItems() {
       return [...tankItems.values()];
     },
+    async clearTankItems() {
+      tankItems.clear();
+    },
     async saveUnlockedSpecies(entry) {
       unlockedSpecies.set(entry.speciesId, entry);
     },

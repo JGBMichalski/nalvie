@@ -20,6 +20,7 @@ export const sessionRepository: SessionRepository = {
   getInProgressSession: () => sessionBacking.getInProgressSession(),
   saveTankItem: (item) => sessionBacking.saveTankItem(item),
   listTankItems: () => sessionBacking.listTankItems(),
+  clearTankItems: () => sessionBacking.clearTankItems(),
   saveUnlockedSpecies: (entry) => sessionBacking.saveUnlockedSpecies(entry),
   listUnlockedSpecies: () => sessionBacking.listUnlockedSpecies(),
 };

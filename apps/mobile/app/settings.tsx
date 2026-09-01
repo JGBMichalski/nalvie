@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { SESSION_PRESET_MINUTES, type Settings } from '@nalvie/core';
+import { clearTank, SESSION_PRESET_MINUTES, type Settings } from '@nalvie/core';
 
 import { GlassPanel } from '../components/GlassPanel';
 import { BackButton } from '../components/BackButton';
@@ -12,7 +12,7 @@ import { SelectField } from '../components/SelectField';
 import { TankBackdrop } from '../components/TankBackdrop';
 import { useAmbientSound } from '../hooks/useAmbientSound';
 import { DEFAULT_SETTINGS } from '../lib/default-settings';
-import { settingsRepository } from '../lib/repository';
+import { sessionRepository, settingsRepository } from '../lib/repository';
 import { SOMAFM_STATIONS, somafmStationName } from '../lib/somafm-stations';
 import { useTheme, useThemeContext } from '../lib/ThemeProvider';
 
@@ -87,6 +87,14 @@ export default function SettingsScreen() {
           fontWeight: '600',
           fontSize: 13,
         },
+        dangerButton: {
+          alignItems: 'center',
+        },
+        dangerButtonText: {
+          color: theme.colors.textPrimary,
+          fontWeight: '600',
+          fontSize: 14,
+        },
       }),
     [theme],
   );
@@ -106,6 +114,17 @@ export default function SettingsScreen() {
   const save = useCallback((next: Settings) => {
     setSettings(next);
     settingsRepository.saveSettings(next);
+  }, []);
+
+  const confirmClearTank = useCallback(() => {
+    Alert.alert(
+      'Clear tank?',
+      "This empties your tank, but nothing is lost — every fish you've unlocked stays available to add back by completing more sessions.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Clear tank', style: 'destructive', onPress: () => clearTank(sessionRepository) },
+      ],
+    );
   }, []);
 
   return (
@@ -180,6 +199,12 @@ export default function SettingsScreen() {
               setSettings((current) => ({ ...current, darkModeOverride: nextOverride }));
             }}
           />
+        </GlassPanel>
+
+        <GlassPanel style={styles.row}>
+          <Pressable style={styles.dangerButton} onPress={confirmClearTank}>
+            <Text style={styles.dangerButtonText}>Clear tank</Text>
+          </Pressable>
         </GlassPanel>
       </SafeAreaView>
 

@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Points economy: completed sessions now earn points (10/minute of planned duration), and fish are unlocked permanently by spending points in the fish picker (common 150 / uncommon 500 / rare 1500). New players start with clownfish and guppy already unlocked. The Home screen's overlay now shows the running points balance, and onboarding has a new slide explaining the earn-then-spend loop.
+- "Clear tank" (Settings screen): deletes every tank item after a confirmation prompt. Cleared fish stay permanently unlocked and can only reappear by completing another session with them selected.
 
 ### Changed
 

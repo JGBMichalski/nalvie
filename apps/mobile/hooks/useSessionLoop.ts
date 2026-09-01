@@ -231,6 +231,11 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     [repository, refreshFromRepository, pointsBalance, unlockedSpeciesIds],
   );
 
+  const clearTank = useCallback(async () => {
+    await repository.clearTankItems();
+    await refreshFromRepository();
+  }, [repository, refreshFromRepository]);
+
   return {
     phase,
     session,
@@ -248,6 +253,7 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     togglePause,
     toggleSessionMute,
     purchaseSpecies,
+    clearTank,
     refresh: refreshFromRepository,
   };
 }

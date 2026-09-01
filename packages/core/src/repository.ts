@@ -9,6 +9,7 @@ export interface SessionRepository {
 
   saveTankItem(item: TankItem): Promise<void>;
   listTankItems(): Promise<TankItem[]>;
+  clearTankItems(): Promise<void>; // "Clear tank" — deletes every TankItem instance
 
   saveUnlockedSpecies(entry: UnlockedSpecies): Promise<void>;
   listUnlockedSpecies(): Promise<UnlockedSpecies[]>;

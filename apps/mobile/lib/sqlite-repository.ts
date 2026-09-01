@@ -73,6 +73,10 @@ export function createSqliteSessionRepository(): SessionRepository {
       return rows.map(rowToTankItem);
     },
 
+    async clearTankItems() {
+      await getDatabase().runAsync('DELETE FROM tank_items');
+    },
+
     async saveUnlockedSpecies(entry: UnlockedSpecies) {
       const row = unlockedSpeciesToRow(entry);
       await getDatabase().runAsync(

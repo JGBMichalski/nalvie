@@ -127,6 +127,37 @@ describe('useSessionLoop', () => {
     expect(result.current.toastMessage).not.toMatch(/Unlocked/);
   });
 
+  it('says "A X has joined" again for a species whose only prior instance was removed by a tank clear', async () => {
+    const repo = createInMemorySessionRepository();
+    const { result } = renderHook(() => useSessionLoop(repo));
+    await act(async () => {});
+
+    await act(async () => {
+      await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(MIN_SESSION_MINUTES * 60_000 + 1000);
+      await Promise.resolve();
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+
+    await act(async () => {
+      await result.current.clearTank();
+    });
+
+    await act(async () => {
+      await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(MIN_SESSION_MINUTES * 60_000 + 1000);
+      await Promise.resolve();
+    });
+
+    expect(result.current.toastMessage).toBe('A Clownfish has joined your tank!');
+  });
+
   it('reserves "Unlocked" for the first time a streak-gated rare species is awarded', async () => {
     const repo = createInMemorySessionRepository();
     const { result } = renderHook(() => useSessionLoop(repo));
@@ -227,6 +258,34 @@ describe('useSessionLoop', () => {
 
       expect(result.current.unlockedSpeciesIds.has('seahorse')).toBe(false);
       expect(result.current.pointsBalance).toBe(0);
+    });
+  });
+
+  describe('clearTank', () => {
+    it('empties unlockedItems and deletes tank items without touching the ledger', async () => {
+      const repo = createInMemorySessionRepository();
+      const { result } = renderHook(() => useSessionLoop(repo));
+      await act(async () => {});
+
+      await act(async () => {
+        await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(MIN_SESSION_MINUTES * 60_000 + 1000);
+        await Promise.resolve();
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(3000);
+      });
+      expect(result.current.unlockedItems).toHaveLength(1);
+
+      await act(async () => {
+        await result.current.clearTank();
+      });
+
+      expect(result.current.unlockedItems).toHaveLength(0);
+      expect(result.current.unlockedSpeciesIds.has('clownfish')).toBe(true); // ownership untouched
+      expect(await repo.listTankItems()).toHaveLength(0);
     });
   });
 

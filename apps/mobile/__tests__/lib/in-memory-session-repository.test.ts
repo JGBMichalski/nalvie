@@ -60,6 +60,21 @@ describe('createInMemorySessionRepository', () => {
     expect(await repo.listTankItems()).toEqual([item]);
   });
 
+  it('clears every tank item ("Clear tank")', async () => {
+    const repo = createInMemorySessionRepository();
+    await repo.saveTankItem({
+      id: 'instance-1',
+      speciesId: 'clownfish',
+      name: 'Clownfish',
+      rarity: 'common',
+      unlockedAt: new Date().toISOString(),
+    });
+
+    await repo.clearTankItems();
+
+    expect(await repo.listTankItems()).toEqual([]);
+  });
+
   it('starts pre-seeded with the starter species (clownfish, guppy)', async () => {
     const repo = createInMemorySessionRepository();
 

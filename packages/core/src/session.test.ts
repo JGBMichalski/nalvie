@@ -64,6 +64,7 @@ describe("session", () => {
         getInProgressSession: vi.fn().mockResolvedValue(inProgress),
         saveTankItem: vi.fn(),
         listTankItems: vi.fn(),
+        clearTankItems: vi.fn(),
         saveUnlockedSpecies: vi.fn(),
         listUnlockedSpecies: vi.fn(),
       };
