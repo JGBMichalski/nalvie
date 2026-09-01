@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { clearTank, SESSION_PRESET_MINUTES, type Settings } from '@nalvie/core';
+import { SESSION_PRESET_MINUTES, TANK_THEMES, tankThemeById, type Settings } from '@nalvie/core';
 
 import { GlassPanel } from '../components/GlassPanel';
 import { BackButton } from '../components/BackButton';
@@ -16,11 +16,7 @@ import { sessionRepository, settingsRepository } from '../lib/repository';
 import { SOMAFM_STATIONS, somafmStationName } from '../lib/somafm-stations';
 import { useTheme, useThemeContext } from '../lib/ThemeProvider';
 
-const DARK_MODE_OPTIONS: { label: string; value: boolean | null }[] = [
-  { label: 'System', value: null },
-  { label: 'Light', value: false },
-  { label: 'Dark', value: true },
-];
+const TANK_THEME_OPTIONS = TANK_THEMES.map((tankTheme) => ({ label: tankTheme.name, value: tankTheme.id }));
 
 const SOUND_SOURCE_OPTIONS: { label: string; value: Settings['soundSource'] }[] = [
   { label: 'Local', value: 'local' },
@@ -31,9 +27,10 @@ const SOMAFM_STATION_OPTIONS = SOMAFM_STATIONS.map((station) => ({ label: statio
 
 export default function SettingsScreen() {
   const theme = useTheme();
-  const { darkModeOverride, setDarkModeOverride } = useThemeContext();
+  const { tankThemeId, setTankThemeId } = useThemeContext();
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [stationPickerOpen, setStationPickerOpen] = useState(false);
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
   const [previewPlaying, setPreviewPlaying] = useState(false);
 
   const styles = useMemo(
@@ -122,7 +119,7 @@ export default function SettingsScreen() {
       "This empties your tank, but nothing is lost — every fish you've unlocked stays available to add back by completing more sessions.",
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear tank', style: 'destructive', onPress: () => clearTank(sessionRepository) },
+        { text: 'Clear tank', style: 'destructive', onPress: () => sessionRepository.clearTankItems() },
       ],
     );
   }, []);
@@ -189,15 +186,12 @@ export default function SettingsScreen() {
           </GlassPanel>
         )}
 
-        <GlassPanel style={styles.row}>
-          <Text style={styles.label}>Theme</Text>
-          <SegmentedControl
-            options={DARK_MODE_OPTIONS}
-            value={darkModeOverride}
-            onChange={(nextOverride) => {
-              setDarkModeOverride(nextOverride);
-              setSettings((current) => ({ ...current, darkModeOverride: nextOverride }));
-            }}
+        <GlassPanel style={[styles.row, styles.toggleRow]}>
+          <Text style={styles.label}>Tank theme</Text>
+          <SelectField
+            value={tankThemeById(tankThemeId).name}
+            accessibilityLabel="Tank theme"
+            onPress={() => setThemePickerOpen(true)}
           />
         </GlassPanel>
 
@@ -215,6 +209,15 @@ export default function SettingsScreen() {
         value={settings.somafmStationId}
         onSelect={(somafmStationId) => save({ ...settings, somafmStationId })}
         onClose={() => setStationPickerOpen(false)}
+      />
+
+      <PickerSheet
+        visible={themePickerOpen}
+        title="Tank theme"
+        options={TANK_THEME_OPTIONS}
+        value={tankThemeId}
+        onSelect={setTankThemeId}
+        onClose={() => setThemePickerOpen(false)}
       />
     </TankBackdrop>
   );

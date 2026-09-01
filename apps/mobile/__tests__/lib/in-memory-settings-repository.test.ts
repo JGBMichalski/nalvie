@@ -14,11 +14,11 @@ describe('createInMemorySettingsRepository', () => {
     const settings: Settings = {
       defaultSessionMinutes: 50,
       soundEnabled: false,
-      darkModeOverride: true,
       hasCompletedOnboarding: true,
       soundSource: 'somafm',
       somafmStationId: 'dronezone',
       pointsBalance: 650,
+      tankThemeId: 'twilight',
     };
 
     await repo.saveSettings(settings);

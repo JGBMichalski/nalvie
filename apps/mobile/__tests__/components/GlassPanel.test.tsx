@@ -3,7 +3,7 @@ import { Text } from 'react-native';
 
 import { GlassPanel } from '../../components/GlassPanel';
 import { ThemeProvider } from '../../lib/ThemeProvider';
-import { lightTheme } from '../../theme';
+import { darkTheme } from '../../theme';
 
 function renderWithTheme(ui: React.ReactElement) {
   return render(<ThemeProvider>{ui}</ThemeProvider>);
@@ -35,7 +35,7 @@ describe('<GlassPanel />', () => {
     // ...but the base glass look survives alongside it.
     expect(flatStyle).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ backgroundColor: lightTheme.colors.glassBackground }),
+        expect.objectContaining({ backgroundColor: darkTheme.colors.glassBackground }),
       ]),
     );
   });

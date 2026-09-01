@@ -16,44 +16,11 @@ export const darkTheme = {
   },
 } as const;
 
-export const lightTheme = {
-  colors: {
-    tankBackgroundFrom: '#bfe9f5',
-    tankBackgroundTo: '#5fb4d4',
-    glassBackground: 'rgba(255, 255, 255, 0.45)',
-    glassBorder: 'rgba(0, 40, 60, 0.15)',
-    glassText: '#05303f',
-    fabBackground: '#0f9e7f',
-    fabIcon: '#ffffff',
-    textPrimary: '#05303f',
-    textSecondary: 'rgba(5, 48, 63, 0.65)',
-  },
-  radii: {
-    glass: 16,
-    fab: 38,
-  },
-} as const;
-
 export type Theme = {
   colors: { [K in keyof typeof darkTheme.colors]: string };
   radii: typeof darkTheme.radii;
 };
 
-export type ColorScheme = 'light' | 'dark';
-
-// Resolves the tri-state override (null = follow system) against the current
-// system scheme into a concrete palette.
-export function resolveColorScheme(
-  darkModeOverride: boolean | null,
-  systemScheme: ColorScheme,
-): ColorScheme {
-  if (darkModeOverride === null) return systemScheme;
-  return darkModeOverride ? 'dark' : 'light';
-}
-
-export function themeForScheme(scheme: ColorScheme): Theme {
-  return scheme === 'light' ? lightTheme : darkTheme;
-}
-
-// Back-compat default
+// The app uses a single dark chrome palette; the selected tank theme drives the
+// accent color on top of it (see ThemeProvider).
 export const theme = darkTheme;

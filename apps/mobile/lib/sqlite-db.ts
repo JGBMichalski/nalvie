@@ -49,7 +49,9 @@ function migrate(database: SQLite.SQLiteDatabase): void {
       dark_mode_override INTEGER,
       has_completed_onboarding INTEGER NOT NULL DEFAULT 0,
       sound_source TEXT NOT NULL DEFAULT 'local',
-      somafm_station_id TEXT NOT NULL DEFAULT 'groovesalad'
+      somafm_station_id TEXT NOT NULL DEFAULT 'groovesalad',
+      points_balance INTEGER NOT NULL DEFAULT 0,
+      tank_theme_id TEXT NOT NULL DEFAULT 'reef'
     );
   `);
   seedStarterSpecies(database);

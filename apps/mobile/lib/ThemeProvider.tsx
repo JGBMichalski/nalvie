@@ -1,50 +1,47 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useColorScheme } from 'react-native';
+import { DEFAULT_TANK_THEME_ID, tankThemeById } from '@nalvie/core';
 
-import { DEFAULT_SETTINGS } from './default-settings';
 import { settingsRepository } from './repository';
-import { resolveColorScheme, themeForScheme, darkTheme, type ColorScheme, type Theme } from '../theme';
+import { darkTheme, type Theme } from '../theme';
 
 interface ThemeContextValue {
   theme: Theme;
-  colorScheme: ColorScheme;
-  darkModeOverride: boolean | null;
-  setDarkModeOverride: (override: boolean | null) => void;
+  tankThemeId: string;
+  setTankThemeId: (id: string) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [darkModeOverride, setDarkModeOverrideState] = useState<boolean | null>(
-    DEFAULT_SETTINGS.darkModeOverride,
-  );
-
-  const systemScheme: ColorScheme = useColorScheme() === 'light' ? 'light' : 'dark';
+  const [tankThemeId, setTankThemeIdState] = useState<string>(DEFAULT_TANK_THEME_ID);
 
   useEffect(() => {
     settingsRepository.getSettings().then((settings) => {
-      setDarkModeOverrideState(settings.darkModeOverride);
+      setTankThemeIdState(settings.tankThemeId);
     });
   }, []);
 
-  const setDarkModeOverride = useCallback((override: boolean | null) => {
-    setDarkModeOverrideState(override);
+  const setTankThemeId = useCallback((id: string) => {
+    setTankThemeIdState(id);
     settingsRepository.getSettings().then((settings) => {
-      settingsRepository.saveSettings({ ...settings, darkModeOverride: override });
+      settingsRepository.saveSettings({ ...settings, tankThemeId: id });
     });
   }, []);
 
-  const colorScheme = resolveColorScheme(darkModeOverride, systemScheme);
-
-  const value = useMemo<ThemeContextValue>(
-    () => ({
-      theme: themeForScheme(colorScheme),
-      colorScheme,
-      darkModeOverride,
-      setDarkModeOverride,
-    }),
-    [colorScheme, darkModeOverride, setDarkModeOverride],
-  );
+  const value = useMemo<ThemeContextValue>(() => {
+    const palette = tankThemeById(tankThemeId).palette;
+    const theme: Theme = {
+      ...darkTheme,
+      colors: {
+        ...darkTheme.colors,
+        fabBackground: palette.accent,
+        fabIcon: palette.accentForeground,
+        glassBackground: palette.glassBackground,
+        glassBorder: palette.glassBorder,
+      },
+    };
+    return { theme, tankThemeId, setTankThemeId };
+  }, [tankThemeId, setTankThemeId]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
@@ -59,4 +56,8 @@ export function useThemeContext(): ThemeContextValue {
 
 export function useTheme(): Theme {
   return useContext(ThemeContext)?.theme ?? darkTheme;
+}
+
+export function useTankThemeId(): string {
+  return useContext(ThemeContext)?.tankThemeId ?? DEFAULT_TANK_THEME_ID;
 }

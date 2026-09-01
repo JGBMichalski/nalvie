@@ -18,7 +18,6 @@ describe('<SettingsScreen />', () => {
 
     expect(await screen.findByLabelText('25m')).toBeTruthy();
     expect(screen.getByLabelText('25m').props.accessibilityState.selected).toBe(true);
-    expect(screen.getByLabelText('System').props.accessibilityState.selected).toBe(true);
   });
 
   it('persists a session-length change', async () => {
@@ -29,16 +28,6 @@ describe('<SettingsScreen />', () => {
     await act(async () => {});
 
     expect((await settingsRepository.getSettings()).defaultSessionMinutes).toBe(50);
-  });
-
-  it('persists a dark mode change', async () => {
-    renderRouter('./app', { initialUrl: '/settings' });
-    await act(async () => {});
-
-    fireEvent.press(await screen.findByLabelText('Dark'));
-    await act(async () => {});
-
-    expect((await settingsRepository.getSettings()).darkModeOverride).toBe(true);
   });
 
   it('toggling sound off persists immediately', async () => {

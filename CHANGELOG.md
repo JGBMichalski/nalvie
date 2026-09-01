@@ -10,11 +10,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Points economy: completed sessions now earn points (10/minute of planned duration), and fish are unlocked permanently by spending points in the fish picker (common 150 / uncommon 500 / rare 1500). New players start with clownfish and guppy already unlocked. The Home screen's overlay now shows the running points balance, and onboarding has a new slide explaining the earn-then-spend loop.
 - "Clear tank" (Settings screen): deletes every tank item after a confirmation prompt. Cleared fish stay permanently unlocked and can only reappear by completing another session with them selected.
+- Swappable tank themes: seven tank background looks (Reef, Twilight, Kelp Forest, Abyss, Tropical Shallows, Lagoon, Sunrise).
 
 ### Changed
 
 - `Settings` gained `pointsBalance`; a new permanent `unlockedSpecies` ledger tracks which species have been purchased.
+- `Settings` gained `tankThemeId`, and `core` now exposes the tank-theme palettes as plain data (`TANK_THEMES`).
 - The Home/Tank screen's overlay now shows only the points balance; the streak and item-count summaries moved to the Stats screen (which also gained an "Items in tank" count) instead of showing on Home.
+
+### Removed
+
+- The System/Light/Dark theme toggle (Settings screen).
 
 ## [0.1.2] - 2026-09-01
 

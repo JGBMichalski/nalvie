@@ -27,7 +27,31 @@ describe('<OnboardingScreen />', () => {
     fireEvent.press(await screen.findByText('Next'));
 
     expect(await screen.findByText(/Leave and lose it/)).toBeTruthy();
+    expect(screen.getByText('Next')).toBeTruthy();
+  });
+
+  it('reaches the tank-theme picker on the final screen', async () => {
+    renderRouter('./app', { initialUrl: '/onboarding' });
+
+    fireEvent.press(await screen.findByText('Next'));
+    fireEvent.press(await screen.findByText('Next'));
+    fireEvent.press(await screen.findByText('Next'));
+
+    expect(await screen.findByText(/Pick your tank/)).toBeTruthy();
+    expect(screen.getByLabelText('Twilight')).toBeTruthy();
     expect(screen.getByText('Get started')).toBeTruthy();
+  });
+
+  it('selecting a tank theme persists it live', async () => {
+    renderRouter('./app', { initialUrl: '/onboarding' });
+
+    fireEvent.press(await screen.findByText('Next'));
+    fireEvent.press(await screen.findByText('Next'));
+    fireEvent.press(await screen.findByText('Next'));
+    fireEvent.press(await screen.findByLabelText('Abyss'));
+    await act(async () => {});
+
+    expect((await settingsRepository.getSettings()).tankThemeId).toBe('abyss');
   });
 
   it('Skip marks onboarding complete and navigates to Home', async () => {
@@ -43,6 +67,7 @@ describe('<OnboardingScreen />', () => {
   it('Get started marks onboarding complete and navigates to Home', async () => {
     renderRouter('./app', { initialUrl: '/onboarding' });
 
+    fireEvent.press(await screen.findByText('Next'));
     fireEvent.press(await screen.findByText('Next'));
     fireEvent.press(await screen.findByText('Next'));
     fireEvent.press(await screen.findByText('Get started'));

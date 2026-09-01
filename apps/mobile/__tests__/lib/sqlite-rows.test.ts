@@ -52,23 +52,17 @@ describe('settings row mapping', () => {
   const settings: Settings = {
     defaultSessionMinutes: 25,
     soundEnabled: true,
-    darkModeOverride: null,
     hasCompletedOnboarding: false,
     soundSource: 'local',
     somafmStationId: 'groovesalad',
     pointsBalance: 0,
+    tankThemeId: 'reef',
   };
 
   it('round-trips settings, always keyed to the fixed row id', () => {
     const row = settingsToRow(settings);
     expect(row.id).toBe(SETTINGS_ROW_ID);
     expect(rowToSettings(row)).toEqual(settings);
-  });
-
-  it('round-trips darkModeOverride: true and false distinctly from null', () => {
-    expect(rowToSettings(settingsToRow({ ...settings, darkModeOverride: true })).darkModeOverride).toBe(true);
-    expect(rowToSettings(settingsToRow({ ...settings, darkModeOverride: false })).darkModeOverride).toBe(false);
-    expect(rowToSettings(settingsToRow({ ...settings, darkModeOverride: null })).darkModeOverride).toBeNull();
   });
 
   it('round-trips soundSource and somafmStationId', () => {
@@ -78,6 +72,10 @@ describe('settings row mapping', () => {
 
   it('round-trips pointsBalance', () => {
     expect(rowToSettings(settingsToRow({ ...settings, pointsBalance: 650 })).pointsBalance).toBe(650);
+  });
+
+  it('round-trips tankThemeId', () => {
+    expect(rowToSettings(settingsToRow({ ...settings, tankThemeId: 'abyss' })).tankThemeId).toBe('abyss');
   });
 });
 

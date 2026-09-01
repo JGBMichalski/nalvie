@@ -2,18 +2,19 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { TankItem } from '@nalvie/core';
+import { TANK_THEMES, type TankItem } from '@nalvie/core';
 
 import { GlassPanel } from '../components/GlassPanel';
 import { TankBackdrop } from '../components/TankBackdrop';
 import { TankScene } from '../components/TankScene';
 import { completeOnboarding } from '../lib/onboarding';
-import { useTheme } from '../lib/ThemeProvider';
+import { useTheme, useThemeContext } from '../lib/ThemeProvider';
 
 interface Slide {
   headline: string;
   body: string;
   tankItems: TankItem[];
+  themePicker?: boolean;
 }
 
 // Placeholder unlockedAt timestamp for the onboarding preview items.
@@ -23,10 +24,11 @@ function previewItem(id: string, speciesId: string): TankItem {
   return { id, speciesId, name: speciesId, rarity: 'common', unlockedAt: UNLOCKED_AT };
 }
 
-// Two-screen first-launch intro. Reuses the real tank scene/swim
-// simulation rather than commissioning separate onboarding-only 
+// Multi-screen first-launch intro. Reuses the real tank scene/swim
+// simulation rather than commissioning separate onboarding-only
 // illustrations — a sparse tank for screen 1, a fuller/livelier
-// one for screen 2.
+// one for later screens. The final screen lets the user pick their
+// tank theme, previewing it live against the real backdrop.
 const SLIDES: Slide[] = [
   {
     headline: 'Grow a living tank',
@@ -49,12 +51,23 @@ const SLIDES: Slide[] = [
       previewItem('onboarding-angelfish', 'angelfish'),
       previewItem('onboarding-neon-tetra', 'neon-tetra'),
       previewItem('onboarding-jellyfish', 'jellyfish'),
+      previewItem('onboarding-seahorse', 'seahorse'),
+    ],
+  },
+  {
+    headline: 'Pick your tank',
+    body: 'Choose a look for your tank. You can change it any time in Settings.',
+    themePicker: true,
+    tankItems: [
+      previewItem('onboarding-theme-sea-turtle', 'sea-turtle'),
+      previewItem('onboarding-theme-shrimp', 'shrimp'),
     ],
   },
 ];
 
 export default function OnboardingScreen() {
   const theme = useTheme();
+  const { tankThemeId, setTankThemeId } = useThemeContext();
   const [step, setStep] = useState(0);
   const isLastSlide = step === SLIDES.length - 1;
   const slide = SLIDES[step];
@@ -89,6 +102,37 @@ export default function OnboardingScreen() {
         },
         panel: {
           gap: 8,
+        },
+        themePicker: {
+          marginTop: 4,
+          gap: 8,
+        },
+        themeOption: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          paddingVertical: 10,
+          paddingHorizontal: 12,
+          borderRadius: theme.radii.glass,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: theme.colors.glassBorder,
+        },
+        themeOptionSelected: {
+          backgroundColor: theme.colors.fabBackground,
+          borderColor: theme.colors.fabBackground,
+        },
+        themeSwatch: {
+          width: 18,
+          height: 18,
+          borderRadius: 9,
+        },
+        themeOptionLabel: {
+          color: theme.colors.textPrimary,
+          fontSize: 15,
+          fontWeight: '600',
+        },
+        themeOptionLabelSelected: {
+          color: theme.colors.fabIcon,
         },
         headline: {
           color: theme.colors.textPrimary,
@@ -131,6 +175,28 @@ export default function OnboardingScreen() {
           <GlassPanel style={styles.panel}>
             <Text style={styles.headline}>{slide.headline}</Text>
             <Text style={styles.body}>{slide.body}</Text>
+            {slide.themePicker && (
+              <View style={styles.themePicker}>
+                {TANK_THEMES.map((tankTheme) => {
+                  const selected = tankTheme.id === tankThemeId;
+                  return (
+                    <Pressable
+                      key={tankTheme.id}
+                      style={[styles.themeOption, selected && styles.themeOptionSelected]}
+                      onPress={() => setTankThemeId(tankTheme.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={tankTheme.name}
+                      accessibilityState={{ selected }}
+                    >
+                      <View style={[styles.themeSwatch, { backgroundColor: tankTheme.palette.accent }]} />
+                      <Text style={[styles.themeOptionLabel, selected && styles.themeOptionLabelSelected]}>
+                        {tankTheme.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
           </GlassPanel>
         </View>
 

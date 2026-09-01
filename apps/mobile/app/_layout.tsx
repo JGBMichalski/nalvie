@@ -7,15 +7,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import '../lib/configure-notifications';
 import { requestNotificationPermission } from '../lib/notification-permissions';
-import { ThemeProvider, useThemeContext } from '../lib/ThemeProvider';
+import { ThemeProvider } from '../lib/ThemeProvider';
 
 function SystemBars() {
-  const { colorScheme } = useThemeContext();
-  const barStyle = colorScheme === 'light' ? 'dark' : 'light';
   return (
     <>
-      <StatusBar style={barStyle} />
-      <NavigationBar hidden style={barStyle} />
+      <StatusBar style="light" />
+      <NavigationBar hidden style="light" />
     </>
   );
 }

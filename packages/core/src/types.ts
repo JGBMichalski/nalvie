@@ -43,11 +43,11 @@ export interface StreakInfo {
 export interface Settings {
   defaultSessionMinutes: number;
   soundEnabled: boolean;
-  darkModeOverride: boolean | null; // null = follow system, true = dark, false = light
   hasCompletedOnboarding: boolean; // gates the first-launch intro flow
   soundSource: "local" | "somafm"; // which ambient audio plays when soundEnabled is true
   somafmStationId: string; // only meaningful when soundSource is "somafm"
   pointsBalance: number; // earned by completed sessions, spent unlocking species
+  tankThemeId: string; // selected tank background theme (see tank-themes.ts)
 }
 
 // Pure state a session/tank screen can be in.

@@ -1,4 +1,5 @@
 import type { FocusSession, Settings, TankItem, UnlockedSpecies } from '@nalvie/core';
+import { DEFAULT_TANK_THEME_ID } from '@nalvie/core';
 
 /**
  * Mapping for the SQLite-backed repositories.
@@ -77,11 +78,11 @@ export interface SettingsRow {
   id: number;
   default_session_minutes: number;
   sound_enabled: number;
-  dark_mode_override: number | null; // 0/1, NULL = follow system
   has_completed_onboarding: number;
   sound_source: string; // "local" | "somafm"
   somafm_station_id: string;
   points_balance: number;
+  tank_theme_id: string;
 }
 
 export function settingsToRow(settings: Settings): SettingsRow {
@@ -89,11 +90,11 @@ export function settingsToRow(settings: Settings): SettingsRow {
     id: SETTINGS_ROW_ID,
     default_session_minutes: settings.defaultSessionMinutes,
     sound_enabled: settings.soundEnabled ? 1 : 0,
-    dark_mode_override: settings.darkModeOverride === null ? null : settings.darkModeOverride ? 1 : 0,
     has_completed_onboarding: settings.hasCompletedOnboarding ? 1 : 0,
     sound_source: settings.soundSource,
     somafm_station_id: settings.somafmStationId,
     points_balance: settings.pointsBalance,
+    tank_theme_id: settings.tankThemeId,
   };
 }
 
@@ -101,11 +102,11 @@ export function rowToSettings(row: SettingsRow): Settings {
   return {
     defaultSessionMinutes: row.default_session_minutes,
     soundEnabled: row.sound_enabled === 1,
-    darkModeOverride: row.dark_mode_override === null ? null : row.dark_mode_override === 1,
     hasCompletedOnboarding: row.has_completed_onboarding === 1,
     soundSource: row.sound_source === 'somafm' ? 'somafm' : 'local',
     somafmStationId: row.somafm_station_id,
     pointsBalance: row.points_balance,
+    tankThemeId: row.tank_theme_id ?? DEFAULT_TANK_THEME_ID,
   };
 }
 

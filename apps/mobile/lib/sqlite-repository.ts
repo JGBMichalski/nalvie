@@ -105,17 +105,17 @@ export function createSqliteSettingsRepository(): SettingsRepository {
       const row = settingsToRow(settings);
       await getDatabase().runAsync(
         `INSERT OR REPLACE INTO settings
-          (id, default_session_minutes, sound_enabled, dark_mode_override, has_completed_onboarding, sound_source, somafm_station_id, points_balance)
+          (id, default_session_minutes, sound_enabled, has_completed_onboarding, sound_source, somafm_station_id, points_balance, tank_theme_id)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           row.id,
           row.default_session_minutes,
           row.sound_enabled,
-          row.dark_mode_override,
           row.has_completed_onboarding,
           row.sound_source,
           row.somafm_station_id,
           row.points_balance,
+          row.tank_theme_id,
         ],
       );
     },
