@@ -4,7 +4,7 @@ import { Link, router } from 'expo-router';
 import { UNLOCK_POOL, unlockPoolItemToTankItem } from '@nalvie/core';
 
 import { GlassPanel } from './GlassPanel';
-import { clearAllData, sessionRepository } from '../lib/repository';
+import { clearAllData, sessionRepository, settingsRepository } from '../lib/repository';
 import { useTheme } from '../lib/ThemeProvider';
 
 // A small dropdown anchored under the hamburger button. 
@@ -52,9 +52,19 @@ export function MenuPopover({
     const unlockedAt = new Date().toISOString();
     await Promise.all(
       UNLOCK_POOL.map((item) =>
-        sessionRepository.saveTankItem(unlockPoolItemToTankItem(UNLOCK_POOL, item.id, item.id, unlockedAt)),
+        Promise.all([
+          sessionRepository.saveTankItem(unlockPoolItemToTankItem(UNLOCK_POOL, item.id, item.id, unlockedAt)),
+          sessionRepository.saveUnlockedSpecies({ speciesId: item.id, unlockedAt }),
+        ]),
       ),
     );
+    onClose();
+    onDataChanged?.();
+  }
+
+  async function addPoints() {
+    const settings = await settingsRepository.getSettings();
+    await settingsRepository.saveSettings({ ...settings, pointsBalance: settings.pointsBalance + 100 });
     onClose();
     onDataChanged?.();
   }
@@ -81,6 +91,9 @@ export function MenuPopover({
           </Link>
           <Pressable style={styles.item} onPress={unlockAllCreatures}>
             <Text style={styles.itemText}>Unlock all creatures (dev)</Text>
+          </Pressable>
+          <Pressable style={styles.item} onPress={addPoints}>
+            <Text style={styles.itemText}>Add 100 points (dev)</Text>
           </Pressable>
           <Pressable style={styles.item} onPress={clearDatabase}>
             <Text style={styles.itemText}>Clear database (dev)</Text>

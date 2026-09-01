@@ -34,6 +34,14 @@ const SLIDES: Slide[] = [
     tankItems: [previewItem('onboarding-guppy', 'guppy')],
   },
   {
+    headline: 'Earn points, unlock fish',
+    body: 'Sessions earn points based on how long you focus. Spend them to unlock new fish for your tank.',
+    tankItems: [
+      previewItem('onboarding-clownfish-points', 'clownfish'),
+      previewItem('onboarding-goldfish', 'goldfish'),
+    ],
+  },
+  {
     headline: 'Leave and lose it',
     body: "Leave early and that session's reward is lost — but your tank is always safe.",
     tankItems: [

@@ -1,4 +1,4 @@
-import type { FocusSession, Settings, TankItem } from '@nalvie/core';
+import type { FocusSession, Settings, TankItem, UnlockedSpecies } from '@nalvie/core';
 
 /**
  * Mapping for the SQLite-backed repositories.
@@ -81,6 +81,7 @@ export interface SettingsRow {
   has_completed_onboarding: number;
   sound_source: string; // "local" | "somafm"
   somafm_station_id: string;
+  points_balance: number;
 }
 
 export function settingsToRow(settings: Settings): SettingsRow {
@@ -92,6 +93,7 @@ export function settingsToRow(settings: Settings): SettingsRow {
     has_completed_onboarding: settings.hasCompletedOnboarding ? 1 : 0,
     sound_source: settings.soundSource,
     somafm_station_id: settings.somafmStationId,
+    points_balance: settings.pointsBalance,
   };
 }
 
@@ -103,5 +105,25 @@ export function rowToSettings(row: SettingsRow): Settings {
     hasCompletedOnboarding: row.has_completed_onboarding === 1,
     soundSource: row.sound_source === 'somafm' ? 'somafm' : 'local',
     somafmStationId: row.somafm_station_id,
+    pointsBalance: row.points_balance,
+  };
+}
+
+export interface UnlockedSpeciesRow {
+  species_id: string;
+  unlocked_at: string;
+}
+
+export function unlockedSpeciesToRow(entry: UnlockedSpecies): UnlockedSpeciesRow {
+  return {
+    species_id: entry.speciesId,
+    unlocked_at: entry.unlockedAt,
+  };
+}
+
+export function rowToUnlockedSpecies(row: UnlockedSpeciesRow): UnlockedSpecies {
+  return {
+    speciesId: row.species_id,
+    unlockedAt: row.unlocked_at,
   };
 }

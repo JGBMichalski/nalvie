@@ -15,9 +15,15 @@ import { useTheme } from '../lib/ThemeProvider';
 export default function StatsScreen() {
   const theme = useTheme();
   const [sessions, setSessions] = useState<FocusSession[]>([]);
+  const [tankItemCount, setTankItemCount] = useState(0);
 
   const load = useCallback(async () => {
-    setSessions(await sessionRepository.listSessions());
+    const [loadedSessions, tankItems] = await Promise.all([
+      sessionRepository.listSessions(),
+      sessionRepository.listTankItems(),
+    ]);
+    setSessions(loadedSessions);
+    setTankItemCount(tankItems.length);
   }, []);
 
   useEffect(() => {
@@ -127,11 +133,15 @@ export default function StatsScreen() {
               {streak.longest} {streak.longest === 1 ? 'day' : 'days'}
             </Text>
           </View>
-          <View style={[styles.row, styles.lastRow]}>
+          <View style={styles.row}>
             <Text style={styles.label}>Completed / Failed</Text>
             <Text style={styles.value}>
               {totals.completedSessions} / {totals.failedSessions}
             </Text>
+          </View>
+          <View style={[styles.row, styles.lastRow]}>
+            <Text style={styles.label}>Items in tank</Text>
+            <Text style={styles.value}>{tankItemCount}</Text>
           </View>
         </GlassPanel>
 

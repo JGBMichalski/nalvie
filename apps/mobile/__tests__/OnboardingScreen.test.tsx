@@ -16,6 +16,16 @@ describe('<OnboardingScreen />', () => {
 
     fireEvent.press(await screen.findByText('Next'));
 
+    expect(await screen.findByText(/Earn points, unlock fish/)).toBeTruthy();
+    expect(screen.getByText('Next')).toBeTruthy();
+  });
+
+  it('advances to the third screen via Next twice', async () => {
+    renderRouter('./app', { initialUrl: '/onboarding' });
+
+    fireEvent.press(await screen.findByText('Next'));
+    fireEvent.press(await screen.findByText('Next'));
+
     expect(await screen.findByText(/Leave and lose it/)).toBeTruthy();
     expect(screen.getByText('Get started')).toBeTruthy();
   });
@@ -33,6 +43,7 @@ describe('<OnboardingScreen />', () => {
   it('Get started marks onboarding complete and navigates to Home', async () => {
     renderRouter('./app', { initialUrl: '/onboarding' });
 
+    fireEvent.press(await screen.findByText('Next'));
     fireEvent.press(await screen.findByText('Next'));
     fireEvent.press(await screen.findByText('Get started'));
     await act(async () => {});

@@ -19,7 +19,6 @@ describe('dev "unlock all creatures" menu action', () => {
     await act(async () => {}); // flush the repository writes + router.back()
 
     expect(screen).toHavePathname('/');
-    expect(await screen.findByText(new RegExp(`${UNLOCK_POOL.length} items`))).toBeTruthy();
     expect(await sessionRepository.listTankItems()).toHaveLength(UNLOCK_POOL.length);
   });
 });

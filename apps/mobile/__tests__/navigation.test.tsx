@@ -16,7 +16,7 @@ describe('navigation shell', () => {
   it('starts on Home/Tank', async () => {
     renderRouter('./app', { initialUrl: '/' });
 
-    expect(await screen.findByText(/streak/)).toBeTruthy();
+    expect(await screen.findByText(/pts/)).toBeTruthy();
     expect(screen).toHavePathname('/');
   });
 

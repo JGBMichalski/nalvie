@@ -1,12 +1,14 @@
-import type { FocusSession, Settings, TankItem } from '@nalvie/core';
+import type { FocusSession, Settings, TankItem, UnlockedSpecies } from '@nalvie/core';
 
 import {
   rowToSession,
   rowToSettings,
   rowToTankItem,
+  rowToUnlockedSpecies,
   sessionToRow,
   settingsToRow,
   tankItemToRow,
+  unlockedSpeciesToRow,
   SETTINGS_ROW_ID,
 } from '../../lib/sqlite-rows';
 
@@ -54,6 +56,7 @@ describe('settings row mapping', () => {
     hasCompletedOnboarding: false,
     soundSource: 'local',
     somafmStationId: 'groovesalad',
+    pointsBalance: 0,
   };
 
   it('round-trips settings, always keyed to the fixed row id', () => {
@@ -71,5 +74,20 @@ describe('settings row mapping', () => {
   it('round-trips soundSource and somafmStationId', () => {
     const somafm = { ...settings, soundSource: 'somafm' as const, somafmStationId: 'dronezone' };
     expect(rowToSettings(settingsToRow(somafm))).toEqual(somafm);
+  });
+
+  it('round-trips pointsBalance', () => {
+    expect(rowToSettings(settingsToRow({ ...settings, pointsBalance: 650 })).pointsBalance).toBe(650);
+  });
+});
+
+describe('unlocked species row mapping', () => {
+  const entry: UnlockedSpecies = {
+    speciesId: 'jellyfish',
+    unlockedAt: '2026-01-01T00:00:00.000Z',
+  };
+
+  it('round-trips an unlocked species entry through row form', () => {
+    expect(rowToUnlockedSpecies(unlockedSpeciesToRow(entry))).toEqual(entry);
   });
 });

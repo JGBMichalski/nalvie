@@ -3,7 +3,7 @@ import { GRACE_PERIOD_MS, MAX_PAUSE_MS, MIN_SESSION_MINUTES, completesAt } from 
 import * as Notifications from 'expo-notifications';
 
 import { createInMemorySessionRepository } from '../lib/in-memory-session-repository';
-import { resetSettingsRepositoryForTests } from '../lib/repository';
+import { resetSettingsRepositoryForTests, settingsRepository } from '../lib/repository';
 import { useSessionLoop } from '../hooks/useSessionLoop';
 import { cancelNativeAudioStop, scheduleNativeAudioStop } from '../modules/screen-lock-signal';
 import { makeFakeAppState } from './test-utils/fake-app-state';
@@ -140,7 +140,94 @@ describe('useSessionLoop', () => {
       await Promise.resolve();
     });
 
-    expect(result.current.toastMessage).toBe('Unlocked: Sea Turtle!');
+    expect(result.current.toastMessage).toBe('A Sea Turtle has joined your tank!');
+  });
+
+  it('awards points for a completed session, proportional to its planned duration', async () => {
+    const repo = createInMemorySessionRepository();
+    const { result } = renderHook(() => useSessionLoop(repo));
+    await act(async () => {});
+    expect(result.current.pointsBalance).toBe(0);
+
+    await act(async () => {
+      await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(MIN_SESSION_MINUTES * 60_000 + 1000);
+      await Promise.resolve();
+    });
+
+    expect(result.current.pointsBalance).toBe(MIN_SESSION_MINUTES * 10);
+  });
+
+  it('awards no points for a failed session', async () => {
+    const repo = createInMemorySessionRepository();
+    const appState = makeFakeAppState();
+    const { result } = renderHook(() => useSessionLoop(repo, appState as never));
+    await act(async () => {});
+
+    await act(async () => {
+      await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
+    });
+    await act(async () => {
+      appState.emit('background');
+      jest.advanceTimersByTime(GRACE_PERIOD_MS + 5000);
+      appState.emit('active');
+    });
+
+    expect(result.current.pointsBalance).toBe(0);
+  });
+
+  describe('purchaseSpecies', () => {
+    it('starts with clownfish and guppy already owned', async () => {
+      const repo = createInMemorySessionRepository();
+      const { result } = renderHook(() => useSessionLoop(repo));
+      await act(async () => {});
+
+      expect(result.current.unlockedSpeciesIds.has('clownfish')).toBe(true);
+      expect(result.current.unlockedSpeciesIds.has('guppy')).toBe(true);
+      expect(result.current.unlockedSpeciesIds.has('seahorse')).toBe(false);
+    });
+
+    it('deducts the cost and adds the species to the ledger when affordable', async () => {
+      const repo = createInMemorySessionRepository();
+      await repo.saveSession({
+        id: 'earn',
+        plannedDurationMinutes: 50,
+        startedAt: new Date().toISOString(),
+        endedAt: new Date().toISOString(),
+        outcome: 'completed',
+        selectedItemId: 'clownfish',
+        awardedItemId: 'clownfish',
+        pausedMs: 0,
+      });
+      await settingsRepository.saveSettings({
+        ...(await settingsRepository.getSettings()),
+        pointsBalance: 500,
+      });
+      const { result } = renderHook(() => useSessionLoop(repo));
+      await act(async () => {});
+
+      await act(async () => {
+        await result.current.purchaseSpecies('seahorse');
+      });
+
+      expect(result.current.unlockedSpeciesIds.has('seahorse')).toBe(true);
+      expect(result.current.pointsBalance).toBe(0);
+    });
+
+    it('does nothing when the balance is insufficient', async () => {
+      const repo = createInMemorySessionRepository();
+      const { result } = renderHook(() => useSessionLoop(repo));
+      await act(async () => {});
+
+      await act(async () => {
+        await result.current.purchaseSpecies('seahorse');
+      });
+
+      expect(result.current.unlockedSpeciesIds.has('seahorse')).toBe(false);
+      expect(result.current.pointsBalance).toBe(0);
+    });
   });
 
   it('does not complete the session while paused, even past the planned duration', async () => {

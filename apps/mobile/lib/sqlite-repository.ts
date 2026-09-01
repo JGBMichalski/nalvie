@@ -1,4 +1,4 @@
-import type { FocusSession, SessionRepository, Settings, SettingsRepository, TankItem } from '@nalvie/core';
+import type { FocusSession, SessionRepository, Settings, SettingsRepository, TankItem, UnlockedSpecies } from '@nalvie/core';
 
 import { DEFAULT_SETTINGS } from './default-settings';
 import { getDatabase } from './sqlite-db';
@@ -6,13 +6,16 @@ import {
   rowToSession,
   rowToSettings,
   rowToTankItem,
+  rowToUnlockedSpecies,
   sessionToRow,
   settingsToRow,
   tankItemToRow,
+  unlockedSpeciesToRow,
   SETTINGS_ROW_ID,
   type SessionRow,
   type SettingsRow,
   type TankItemRow,
+  type UnlockedSpeciesRow,
 } from './sqlite-rows';
 
 // Both repositories below share one expo-sqlite database (see sqlite-db.ts)
@@ -69,6 +72,19 @@ export function createSqliteSessionRepository(): SessionRepository {
       const rows = await getDatabase().getAllAsync<TankItemRow>('SELECT * FROM tank_items');
       return rows.map(rowToTankItem);
     },
+
+    async saveUnlockedSpecies(entry: UnlockedSpecies) {
+      const row = unlockedSpeciesToRow(entry);
+      await getDatabase().runAsync(
+        'INSERT OR REPLACE INTO unlocked_species (species_id, unlocked_at) VALUES (?, ?)',
+        [row.species_id, row.unlocked_at],
+      );
+    },
+
+    async listUnlockedSpecies() {
+      const rows = await getDatabase().getAllAsync<UnlockedSpeciesRow>('SELECT * FROM unlocked_species');
+      return rows.map(rowToUnlockedSpecies);
+    },
   };
 }
 
@@ -85,8 +101,8 @@ export function createSqliteSettingsRepository(): SettingsRepository {
       const row = settingsToRow(settings);
       await getDatabase().runAsync(
         `INSERT OR REPLACE INTO settings
-          (id, default_session_minutes, sound_enabled, dark_mode_override, has_completed_onboarding, sound_source, somafm_station_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          (id, default_session_minutes, sound_enabled, dark_mode_override, has_completed_onboarding, sound_source, somafm_station_id, points_balance)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           row.id,
           row.default_session_minutes,
@@ -95,6 +111,7 @@ export function createSqliteSettingsRepository(): SettingsRepository {
           row.has_completed_onboarding,
           row.sound_source,
           row.somafm_station_id,
+          row.points_balance,
         ],
       );
     },

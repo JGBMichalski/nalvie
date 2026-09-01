@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { unlockRequirementLabel, type UnlockPoolItem } from '@nalvie/core';
+import { canAfford, unlockCostLabel, type UnlockPoolItem } from '@nalvie/core';
 
 import { TankItemVisual } from './TankItemVisual';
 import { useTheme } from '../lib/ThemeProvider';
@@ -11,20 +11,22 @@ const ITEM_VISUAL_SIZE = 48;
 export function FishPickerSheet({
   visible,
   items,
-  eligibleItemIds,
-  ownedSpeciesIds = new Set(),
+  ownedSpeciesIds,
+  pointsBalance,
   onClose,
   onSelect,
+  onPurchase,
 }: {
   visible: boolean;
   items: UnlockPoolItem[];
-  eligibleItemIds: ReadonlySet<string>;
-  // Ownership is the real source of truth for anything already earned — a
-  // streak-gated item's eligibility can lapse (a missed day resets the
-  // streak) even though the player already has one in their tank.
-  ownedSpeciesIds?: ReadonlySet<string>;
+  // The permanent ownership ledger — the only thing that gates whether a
+  // species can be chosen for a session. Cost/affordability only matters
+  // for species not yet in this set.
+  ownedSpeciesIds: ReadonlySet<string>;
+  pointsBalance: number;
   onClose: () => void;
   onSelect: (itemId: string) => void;
+  onPurchase: (itemId: string) => void;
 }) {
   const theme = useTheme();
   const styles = useMemo(
@@ -108,16 +110,31 @@ export function FishPickerSheet({
           columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => {
-            const locked = !eligibleItemIds.has(item.id) && !ownedSpeciesIds.has(item.id);
-            const requirement = locked ? unlockRequirementLabel(item) : '';
+            const owned = ownedSpeciesIds.has(item.id);
+            const affordable = owned || canAfford(pointsBalance, item);
+            const locked = !owned && !affordable;
+            const costLabel = owned ? '' : unlockCostLabel(item);
+
+            function handlePress() {
+              if (locked) return;
+              if (owned) {
+                onSelect(item.id);
+                return;
+              }
+              Alert.alert(`Buy ${item.name} for ${costLabel.replace(' to unlock', '')}?`, undefined, [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Buy', onPress: () => onPurchase(item.id) },
+              ]);
+            }
+
             return (
               <Pressable
                 style={[styles.item, locked && styles.itemLocked]}
-                onPress={() => !locked && onSelect(item.id)}
+                onPress={handlePress}
                 disabled={locked}
                 testID={`fish-item-${item.id}`}
                 accessibilityState={{ disabled: locked }}
-                accessibilityLabel={locked ? `${item.name}. ${requirement}.` : undefined}
+                accessibilityLabel={!owned ? `${item.name}. ${costLabel}.` : undefined}
               >
                 <View style={styles.stage}>
                   <View style={locked && styles.visualLocked}>
@@ -130,7 +147,7 @@ export function FishPickerSheet({
                   )}
                 </View>
                 <Text style={[styles.itemName, locked && styles.itemNameLocked]}>{item.name}</Text>
-                {locked && <Text style={styles.requirement}>{requirement}</Text>}
+                {!owned && <Text style={styles.requirement}>{costLabel}</Text>}
               </Pressable>
             );
           }}

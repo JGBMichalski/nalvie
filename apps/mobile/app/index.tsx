@@ -40,6 +40,11 @@ export default function HomeScreen() {
         streak: {
           alignSelf: 'flex-start',
         },
+        pointsRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+        },
         glassText: {
           color: theme.colors.glassText,
           fontSize: 13,
@@ -155,12 +160,13 @@ export default function HomeScreen() {
     isSessionMuted,
     hasUsedPause,
     unlockedItems,
-    eligibleItems,
-    streak,
+    unlockedSpeciesIds,
+    pointsBalance,
     toastMessage,
     startSession,
     togglePause,
     toggleSessionMute,
+    purchaseSpecies,
     refresh,
   } = useSessionLoop(sessionRepository);
 
@@ -220,9 +226,10 @@ export default function HomeScreen() {
     <TankBackdrop>
       <SafeAreaView style={styles.overlay} edges={['top', 'bottom']}>
         <GlassPanel style={styles.streak}>
-          <Text style={styles.glassText}>
-            🔥 {streak.current}-day streak · {unlockedItems.length} items
-          </Text>
+          <View style={styles.pointsRow}>
+            <Ionicons name="diamond" size={14} color={theme.colors.glassText} />
+            <Text style={styles.glassText}>{pointsBalance} pts</Text>
+          </View>
         </GlassPanel>
 
         <TankScene items={unlockedItems} />
@@ -317,13 +324,14 @@ export default function HomeScreen() {
       <FishPickerSheet
         visible={step === 'fish'}
         items={UNLOCK_POOL}
-        eligibleItemIds={new Set(eligibleItems.map((item) => item.id))}
-        ownedSpeciesIds={new Set(unlockedItems.map((item) => item.speciesId))}
+        ownedSpeciesIds={unlockedSpeciesIds}
+        pointsBalance={pointsBalance}
         onClose={() => setStep('idle')}
         onSelect={(itemId) => {
           setSelectedItemId(itemId);
           setStep('duration');
         }}
+        onPurchase={purchaseSpecies}
       />
 
       <DurationPickerSheet

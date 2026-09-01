@@ -59,4 +59,21 @@ describe('createInMemorySessionRepository', () => {
 
     expect(await repo.listTankItems()).toEqual([item]);
   });
+
+  it('starts pre-seeded with the starter species (clownfish, guppy)', async () => {
+    const repo = createInMemorySessionRepository();
+
+    const owned = (await repo.listUnlockedSpecies()).map((entry) => entry.speciesId);
+    expect(owned.sort()).toEqual(['clownfish', 'guppy']);
+  });
+
+  it('round-trips a saved unlocked-species entry', async () => {
+    const repo = createInMemorySessionRepository();
+    const entry = { speciesId: 'jellyfish', unlockedAt: new Date().toISOString() };
+
+    await repo.saveUnlockedSpecies(entry);
+
+    const owned = await repo.listUnlockedSpecies();
+    expect(owned).toContainEqual(entry);
+  });
 });

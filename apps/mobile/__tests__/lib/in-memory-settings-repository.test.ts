@@ -18,6 +18,7 @@ describe('createInMemorySettingsRepository', () => {
       hasCompletedOnboarding: true,
       soundSource: 'somafm',
       somafmStationId: 'dronezone',
+      pointsBalance: 650,
     };
 
     await repo.saveSettings(settings);

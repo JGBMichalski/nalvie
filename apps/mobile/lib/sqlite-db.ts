@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import { STARTER_SPECIES_IDS } from '@nalvie/core';
 
 const DATABASE_NAME = 'nalvie.db';
 
@@ -36,6 +37,11 @@ function migrate(database: SQLite.SQLiteDatabase): void {
       unlocked_at TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS unlocked_species (
+      species_id TEXT PRIMARY KEY NOT NULL,
+      unlocked_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY NOT NULL,
       default_session_minutes REAL NOT NULL,
@@ -46,6 +52,17 @@ function migrate(database: SQLite.SQLiteDatabase): void {
       somafm_station_id TEXT NOT NULL DEFAULT 'groovesalad'
     );
   `);
+  seedStarterSpecies(database);
+}
+
+function seedStarterSpecies(database: SQLite.SQLiteDatabase): void {
+  const unlockedAt = new Date().toISOString();
+  for (const speciesId of STARTER_SPECIES_IDS) {
+    database.runSync('INSERT OR IGNORE INTO unlocked_species (species_id, unlocked_at) VALUES (?, ?)', [
+      speciesId,
+      unlockedAt,
+    ]);
+  }
 }
 
 // Dev-only "clear database" action: wipes every row but keeps the schema,
@@ -54,6 +71,8 @@ export function clearDatabase(): void {
   getDatabase().execSync(`
     DELETE FROM sessions;
     DELETE FROM tank_items;
+    DELETE FROM unlocked_species;
     DELETE FROM settings;
   `);
+  seedStarterSpecies(getDatabase());
 }

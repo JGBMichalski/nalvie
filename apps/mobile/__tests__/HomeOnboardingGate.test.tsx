@@ -18,7 +18,7 @@ describe('Home onboarding gate', () => {
     renderRouter('./app', { initialUrl: '/' });
     await act(async () => {});
 
-    expect(await screen.findByText(/streak/)).toBeTruthy();
+    expect(await screen.findByText(/pts/)).toBeTruthy();
     expect(screen).toHavePathname('/');
   });
 });

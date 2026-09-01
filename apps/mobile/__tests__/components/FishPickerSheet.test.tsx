@@ -1,20 +1,29 @@
 import { render, screen, fireEvent } from '@testing-library/react-native';
+import { Alert } from 'react-native';
 import type { UnlockPoolItem } from '@nalvie/core';
 
 import { FishPickerSheet } from '../../components/FishPickerSheet';
 
 const items: UnlockPoolItem[] = [
-  { id: 'clownfish', name: 'Clownfish', rarity: 'common', eligibility: 'always' },
-  { id: 'seahorse', name: 'Seahorse', rarity: 'uncommon', eligibility: { minCompletedSessions: 5 } },
-  { id: 'sea-turtle', name: 'Sea Turtle', rarity: 'rare', eligibility: { minStreakDays: 7 } },
+  { id: 'clownfish', name: 'Clownfish', rarity: 'common' },
+  { id: 'seahorse', name: 'Seahorse', rarity: 'uncommon' },
+  { id: 'sea-turtle', name: 'Sea Turtle', rarity: 'rare' },
 ];
 
-const allEligible = new Set(items.map((item) => item.id));
+const ownedAll = new Set(items.map((item) => item.id));
 
 describe('<FishPickerSheet />', () => {
-  it('lists every item by name, eligible or not', async () => {
+  it('lists every item by name, owned or not', async () => {
     await render(
-      <FishPickerSheet visible items={items} eligibleItemIds={allEligible} onClose={jest.fn()} onSelect={jest.fn()} />,
+      <FishPickerSheet
+        visible
+        items={items}
+        ownedSpeciesIds={ownedAll}
+        pointsBalance={0}
+        onClose={jest.fn()}
+        onSelect={jest.fn()}
+        onPurchase={jest.fn()}
+      />,
     );
 
     expect(screen.getByText('Clownfish')).toBeTruthy();
@@ -24,17 +33,33 @@ describe('<FishPickerSheet />', () => {
 
   it('shows the animated fish rather than a static emoji for species that have one', async () => {
     await render(
-      <FishPickerSheet visible items={items} eligibleItemIds={allEligible} onClose={jest.fn()} onSelect={jest.fn()} />,
+      <FishPickerSheet
+        visible
+        items={items}
+        ownedSpeciesIds={ownedAll}
+        pointsBalance={0}
+        onClose={jest.fn()}
+        onSelect={jest.fn()}
+        onPurchase={jest.fn()}
+      />,
     );
 
     expect(screen.getByLabelText('Clownfish')).toBeTruthy();
     expect(screen.getByLabelText('Seahorse')).toBeTruthy();
   });
 
-  it('calls onSelect with the tapped item id', async () => {
+  it('calls onSelect with the tapped item id when it is already owned', async () => {
     const onSelect = jest.fn();
     await render(
-      <FishPickerSheet visible items={items} eligibleItemIds={allEligible} onClose={jest.fn()} onSelect={onSelect} />,
+      <FishPickerSheet
+        visible
+        items={items}
+        ownedSpeciesIds={ownedAll}
+        pointsBalance={0}
+        onClose={jest.fn()}
+        onSelect={onSelect}
+        onPurchase={jest.fn()}
+      />,
     );
 
     fireEvent.press(screen.getByText('Seahorse'));
@@ -45,7 +70,15 @@ describe('<FishPickerSheet />', () => {
   it('calls onClose when the backdrop is pressed', async () => {
     const onClose = jest.fn();
     await render(
-      <FishPickerSheet visible items={items} eligibleItemIds={allEligible} onClose={onClose} onSelect={jest.fn()} />,
+      <FishPickerSheet
+        visible
+        items={items}
+        ownedSpeciesIds={ownedAll}
+        pointsBalance={0}
+        onClose={onClose}
+        onSelect={jest.fn()}
+        onPurchase={jest.fn()}
+      />,
     );
 
     fireEvent.press(screen.getByTestId('fish-picker-backdrop'));
@@ -53,18 +86,38 @@ describe('<FishPickerSheet />', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  describe('locked items', () => {
-    const eligibleOnlyClownfish = new Set(['clownfish']);
+  describe('unowned items', () => {
+    const ownedOnlyClownfish = new Set(['clownfish']);
 
-    it('marks a locked item as disabled and does not call onSelect when tapped', async () => {
-      const onSelect = jest.fn();
+    it('shows the point cost for an unowned item', async () => {
       await render(
         <FishPickerSheet
           visible
           items={items}
-          eligibleItemIds={eligibleOnlyClownfish}
+          ownedSpeciesIds={ownedOnlyClownfish}
+          pointsBalance={0}
+          onClose={jest.fn()}
+          onSelect={jest.fn()}
+          onPurchase={jest.fn()}
+        />,
+      );
+
+      expect(screen.getByText('500 pts to unlock')).toBeTruthy();
+      expect(screen.getByText('1500 pts to unlock')).toBeTruthy();
+    });
+
+    it('marks an unaffordable item as disabled and does not call onSelect/onPurchase when tapped', async () => {
+      const onSelect = jest.fn();
+      const onPurchase = jest.fn();
+      await render(
+        <FishPickerSheet
+          visible
+          items={items}
+          ownedSpeciesIds={ownedOnlyClownfish}
+          pointsBalance={0}
           onClose={jest.fn()}
           onSelect={onSelect}
+          onPurchase={onPurchase}
         />,
       );
 
@@ -74,103 +127,87 @@ describe('<FishPickerSheet />', () => {
       fireEvent.press(seahorse);
 
       expect(onSelect).not.toHaveBeenCalled();
+      expect(onPurchase).not.toHaveBeenCalled();
     });
 
-    it('still allows selecting an eligible item', async () => {
-      const onSelect = jest.fn();
+    it('does not show a cost under an owned item', async () => {
       await render(
         <FishPickerSheet
           visible
           items={items}
-          eligibleItemIds={eligibleOnlyClownfish}
-          onClose={jest.fn()}
-          onSelect={onSelect}
-        />,
-      );
-
-      fireEvent.press(screen.getByText('Clownfish'));
-
-      expect(onSelect).toHaveBeenCalledWith('clownfish');
-    });
-
-    it('explains the session-count requirement for a locked uncommon item', async () => {
-      await render(
-        <FishPickerSheet
-          visible
-          items={items}
-          eligibleItemIds={eligibleOnlyClownfish}
+          ownedSpeciesIds={ownedOnlyClownfish}
+          pointsBalance={0}
           onClose={jest.fn()}
           onSelect={jest.fn()}
+          onPurchase={jest.fn()}
         />,
       );
 
-      expect(screen.getByText('Complete 5 sessions to unlock')).toBeTruthy();
+      expect(screen.queryByText('150 pts to unlock')).toBeNull();
     });
 
-    it('explains the streak requirement for a locked rare item', async () => {
+    it('gives an unowned item an accessibility label combining its name and the cost', async () => {
       await render(
         <FishPickerSheet
           visible
           items={items}
-          eligibleItemIds={eligibleOnlyClownfish}
+          ownedSpeciesIds={ownedOnlyClownfish}
+          pointsBalance={0}
           onClose={jest.fn()}
           onSelect={jest.fn()}
+          onPurchase={jest.fn()}
         />,
       );
 
-      expect(screen.getByText('Reach a 7-day streak to unlock')).toBeTruthy();
+      expect(screen.getByLabelText('Seahorse. 500 pts to unlock.')).toBeTruthy();
     });
 
-    it('does not show a requirement under an eligible item', async () => {
+    it('prompts to confirm a purchase when tapping an affordable, unowned item', async () => {
+      const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation();
       await render(
         <FishPickerSheet
           visible
           items={items}
-          eligibleItemIds={eligibleOnlyClownfish}
+          ownedSpeciesIds={ownedOnlyClownfish}
+          pointsBalance={500}
           onClose={jest.fn()}
           onSelect={jest.fn()}
+          onPurchase={jest.fn()}
         />,
       );
 
-      expect(screen.queryByText('Complete 0 sessions to unlock')).toBeNull();
+      fireEvent.press(screen.getByTestId('fish-item-seahorse'));
+
+      expect(alertSpy).toHaveBeenCalledWith(
+        'Buy Seahorse for 500 pts?',
+        undefined,
+        expect.arrayContaining([expect.objectContaining({ text: 'Buy' })]),
+      );
+      alertSpy.mockRestore();
     });
 
-    it('gives a locked item an accessibility label combining its name and the requirement', async () => {
+    it('calls onPurchase only once the confirmation is accepted', async () => {
+      const onPurchase = jest.fn();
+      const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_title, _msg, buttons) => {
+        const buyButton = buttons?.find((button) => button.text === 'Buy');
+        buyButton?.onPress?.();
+      });
       await render(
         <FishPickerSheet
           visible
           items={items}
-          eligibleItemIds={eligibleOnlyClownfish}
+          ownedSpeciesIds={ownedOnlyClownfish}
+          pointsBalance={500}
           onClose={jest.fn()}
           onSelect={jest.fn()}
+          onPurchase={onPurchase}
         />,
       );
 
-      expect(screen.getByLabelText('Seahorse. Complete 5 sessions to unlock.')).toBeTruthy();
-    });
+      fireEvent.press(screen.getByTestId('fish-item-seahorse'));
 
-    it('treats an already-owned species as selectable even if it is no longer currently eligible', async () => {
-      // e.g. a rare item gated by a streak that has since reset — the spec's
-      // "once eligible, always eligible" only holds for session-count gates,
-      // so ownership is the real source of truth for anything already earned.
-      const onSelect = jest.fn();
-      await render(
-        <FishPickerSheet
-          visible
-          items={items}
-          eligibleItemIds={eligibleOnlyClownfish}
-          ownedSpeciesIds={new Set(['sea-turtle'])}
-          onClose={jest.fn()}
-          onSelect={onSelect}
-        />,
-      );
-
-      const seaTurtle = screen.getByTestId('fish-item-sea-turtle');
-      expect(seaTurtle.props.accessibilityState?.disabled).toBe(false);
-      expect(screen.queryByText('Reach a 7-day streak to unlock')).toBeNull();
-
-      fireEvent.press(seaTurtle);
-      expect(onSelect).toHaveBeenCalledWith('sea-turtle');
+      expect(onPurchase).toHaveBeenCalledWith('seahorse');
+      alertSpy.mockRestore();
     });
   });
 });

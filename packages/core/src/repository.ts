@@ -1,4 +1,4 @@
-import type { FocusSession, Settings, TankItem } from "./types.js";
+import type { FocusSession, Settings, TankItem, UnlockedSpecies } from "./types.js";
 
 // Implemented per-platform (expo-sqlite on mobile, IndexedDB/sql.js on web)
 export interface SessionRepository {
@@ -9,6 +9,9 @@ export interface SessionRepository {
 
   saveTankItem(item: TankItem): Promise<void>;
   listTankItems(): Promise<TankItem[]>;
+
+  saveUnlockedSpecies(entry: UnlockedSpecies): Promise<void>;
+  listUnlockedSpecies(): Promise<UnlockedSpecies[]>;
 }
 
 // Mirrors SessionRepository's per-platform storage pattern.

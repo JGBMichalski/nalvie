@@ -2,16 +2,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   UNLOCK_POOL,
   applyPause,
+  canAfford,
   completeSession,
   completesAt,
   computeStreak,
+  costFor,
   createSession,
-  eligiblePoolItems,
   elapsedMs,
   failSession,
   finalizeInterruptedSession,
   hasUsedPause,
   isSessionComplete,
+  pointsForSession,
   unlockPoolItemToTankItem,
   GRACE_PERIOD_MS,
   type FocusSession,
@@ -32,6 +34,7 @@ import {
   sendLeaveWarningNotification,
 } from '../lib/session-notifications';
 import { cancelNativeAudioStop, scheduleNativeAudioStop } from '../modules/screen-lock-signal';
+import { settingsRepository } from '../lib/repository';
 
 export type SessionPhase = 'idle' | 'in-progress' | 'toast-complete' | 'toast-failed';
 
@@ -42,6 +45,11 @@ function createId(): string {
   return `session-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 }
 
+async function adjustPointsBalance(delta: number): Promise<void> {
+  const settings = await settingsRepository.getSettings();
+  await settingsRepository.saveSettings({ ...settings, pointsBalance: settings.pointsBalance + delta });
+}
+
 /**
  * Orchestrates the Session & Tank core loop.
  */
@@ -49,6 +57,8 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
   const [phase, setPhase] = useState<SessionPhase>('idle');
   const [session, setSession] = useState<FocusSession | null>(null);
   const [unlockedItems, setUnlockedItems] = useState<TankItem[]>([]);
+  const [unlockedSpeciesIds, setUnlockedSpeciesIds] = useState<Set<string>>(new Set());
+  const [pointsBalance, setPointsBalance] = useState(0);
   const [completedSessions, setCompletedSessions] = useState(0);
   const [streak, setStreak] = useState<StreakInfo>({ current: 0, longest: 0 });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -59,8 +69,15 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
   const pauseStartedAtRef = useRef<number | null>(null);
 
   const refreshFromRepository = useCallback(async () => {
-    const [items, sessions] = await Promise.all([repository.listTankItems(), repository.listSessions()]);
+    const [items, sessions, unlockedSpecies, settings] = await Promise.all([
+      repository.listTankItems(),
+      repository.listSessions(),
+      repository.listUnlockedSpecies(),
+      settingsRepository.getSettings(),
+    ]);
     setUnlockedItems(items);
+    setUnlockedSpeciesIds(new Set(unlockedSpecies.map((entry) => entry.speciesId)));
+    setPointsBalance(settings.pointsBalance);
     setCompletedSessions(sessions.filter((s) => s.outcome === 'completed').length);
     setStreak(computeStreak(sessions));
   }, [repository]);
@@ -104,21 +121,15 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     async (current: FocusSession) => {
       const item = unlockPoolItemToTankItem(UNLOCK_POOL, current.selectedItemId, current.id, new Date().toISOString());
       const isFreshUnlock = !unlockedItems.some((existing) => existing.speciesId === item.speciesId);
-      const poolItem = UNLOCK_POOL.find((poolEntry) => poolEntry.id === item.speciesId);
-      const isStreakUnlock =
-        isFreshUnlock && typeof poolItem?.eligibility === 'object' && 'minStreakDays' in poolItem.eligibility;
 
       await cancelSessionNotifications();
       cancelNativeAudioStop();
       await repository.saveTankItem(item);
       await repository.saveSession(completeSession(current));
+      await adjustPointsBalance(pointsForSession(current.plannedDurationMinutes));
       setSession(null);
       setToastMessage(
-        isStreakUnlock
-          ? `Unlocked: ${item.name}!`
-          : isFreshUnlock
-            ? `A ${item.name} has joined your tank!`
-            : `Another ${item.name} joined your tank!`,
+        isFreshUnlock ? `A ${item.name} has joined your tank!` : `Another ${item.name} joined your tank!`,
       );
       setPhase('toast-complete');
       await refreshFromRepository();
@@ -208,6 +219,18 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     setIsSessionMuted((muted) => !muted);
   }, []);
 
+  const purchaseSpecies = useCallback(
+    async (itemId: string) => {
+      const item = UNLOCK_POOL.find((poolItem) => poolItem.id === itemId);
+      if (!item || unlockedSpeciesIds.has(itemId) || !canAfford(pointsBalance, item)) return;
+
+      await adjustPointsBalance(-costFor(item));
+      await repository.saveUnlockedSpecies({ speciesId: itemId, unlockedAt: new Date().toISOString() });
+      await refreshFromRepository();
+    },
+    [repository, refreshFromRepository, pointsBalance, unlockedSpeciesIds],
+  );
+
   return {
     phase,
     session,
@@ -216,13 +239,15 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     isSessionMuted,
     hasUsedPause: session ? hasUsedPause(session) : false,
     unlockedItems,
+    unlockedSpeciesIds,
+    pointsBalance,
     completedSessions,
     streak,
-    eligibleItems: eligiblePoolItems(UNLOCK_POOL, { completedSessions, streak }),
     toastMessage,
     startSession,
     togglePause,
     toggleSessionMute,
+    purchaseSpecies,
     refresh: refreshFromRepository,
   };
 }

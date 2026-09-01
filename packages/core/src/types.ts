@@ -23,6 +23,11 @@ export interface TankItem {
   unlockedAt: string | null; // ISO 8601, null if not yet unlocked
 }
 
+export interface UnlockedSpecies {
+  speciesId: string; // Catalog id, matches UnlockPoolItem.id
+  unlockedAt: string; // ISO 8601
+}
+
 export interface DailyStats {
   date: string; // YYYY-MM-DD
   completedSessions: number;
@@ -42,6 +47,7 @@ export interface Settings {
   hasCompletedOnboarding: boolean; // gates the first-launch intro flow
   soundSource: "local" | "somafm"; // which ambient audio plays when soundEnabled is true
   somafmStationId: string; // only meaningful when soundSource is "somafm"
+  pointsBalance: number; // earned by completed sessions, spent unlocking species
 }
 
 // Pure state a session/tank screen can be in.

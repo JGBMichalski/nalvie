@@ -1,13 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { UNLOCK_POOL, eligiblePoolItems, unlockPoolItemToTankItem, unlockRequirementLabel } from "./unlock-pool.js";
-
-function stats(overrides: Partial<{ completedSessions: number; streak: { current: number; longest: number } }> = {}) {
-  return {
-    completedSessions: 1,
-    streak: { current: 0, longest: 0 },
-    ...overrides,
-  };
-}
+import { STARTER_SPECIES_IDS, UNLOCK_POOL, unlockPoolItemToTankItem } from "./unlock-pool.js";
 
 describe("UNLOCK_POOL", () => {
   it("currently has 9 active items (3 common / 4 uncommon / 2 rare) — seabed items are commented out", () => {
@@ -23,59 +15,12 @@ describe("UNLOCK_POOL", () => {
   });
 });
 
-describe("eligiblePoolItems", () => {
-  const commonPool = [{ id: "c1", name: "Common 1", rarity: "common" as const, eligibility: "always" as const }];
-  const uncommonPool = [
-    { id: "u1", name: "Uncommon 1", rarity: "uncommon" as const, eligibility: { minCompletedSessions: 5 } },
-  ];
-  const rarePool = [{ id: "r1", name: "Rare 1", rarity: "rare" as const, eligibility: { minStreakDays: 7 } }];
-  const fullPool = [...commonPool, ...uncommonPool, ...rarePool];
-
-  it("includes only always-eligible items before any gate opens", () => {
-    const items = eligiblePoolItems(fullPool, stats({ completedSessions: 0 }));
-    expect(items.map((i) => i.id)).toEqual(["c1"]);
-  });
-
-  it("includes uncommon items once the session-count gate is met", () => {
-    const items = eligiblePoolItems(fullPool, stats({ completedSessions: 5 }));
-    expect(items.map((i) => i.id)).toEqual(["c1", "u1"]);
-  });
-
-  it("includes rare items once the streak gate is met", () => {
-    const items = eligiblePoolItems(fullPool, stats({ completedSessions: 5, streak: { current: 7, longest: 7 } }));
-    expect(items.map((i) => i.id)).toEqual(["c1", "u1", "r1"]);
-  });
-});
-
-describe("unlockRequirementLabel", () => {
-  it("has no requirement text for an always-eligible item", () => {
-    expect(unlockRequirementLabel({ id: "c1", name: "Common", rarity: "common", eligibility: "always" })).toBe("");
-  });
-
-  it("describes a session-count gate, pluralized", () => {
-    expect(
-      unlockRequirementLabel({
-        id: "u1",
-        name: "Uncommon",
-        rarity: "uncommon",
-        eligibility: { minCompletedSessions: 5 },
-      }),
-    ).toBe("Complete 5 sessions to unlock");
-
-    expect(
-      unlockRequirementLabel({
-        id: "u2",
-        name: "Uncommon 2",
-        rarity: "uncommon",
-        eligibility: { minCompletedSessions: 1 },
-      }),
-    ).toBe("Complete 1 session to unlock");
-  });
-
-  it("describes a streak gate", () => {
-    expect(
-      unlockRequirementLabel({ id: "r1", name: "Rare", rarity: "rare", eligibility: { minStreakDays: 7 } }),
-    ).toBe("Reach a 7-day streak to unlock");
+describe("STARTER_SPECIES_IDS", () => {
+  it("is clownfish and guppy, both present in the pool", () => {
+    expect(STARTER_SPECIES_IDS).toEqual(["clownfish", "guppy"]);
+    for (const id of STARTER_SPECIES_IDS) {
+      expect(UNLOCK_POOL.some((item) => item.id === id)).toBe(true);
+    }
   });
 });
 

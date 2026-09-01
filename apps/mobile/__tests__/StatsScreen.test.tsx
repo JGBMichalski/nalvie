@@ -74,4 +74,27 @@ describe('<StatsScreen />', () => {
 
     expect(await screen.findByTestId('stats-heatmap')).toBeTruthy();
   });
+
+  it('shows the number of items currently in the tank', async () => {
+    await sessionRepository.saveTankItem({
+      id: 'instance-1',
+      speciesId: 'clownfish',
+      name: 'Clownfish',
+      rarity: 'common',
+      unlockedAt: new Date().toISOString(),
+    });
+    await sessionRepository.saveTankItem({
+      id: 'instance-2',
+      speciesId: 'guppy',
+      name: 'Guppy',
+      rarity: 'common',
+      unlockedAt: new Date().toISOString(),
+    });
+
+    renderRouter('./app', { initialUrl: '/stats' });
+    await act(async () => {});
+
+    expect(await screen.findByText('Items in tank')).toBeTruthy();
+    expect(screen.getByText('2')).toBeTruthy();
+  });
 });

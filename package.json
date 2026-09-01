@@ -1,7 +1,7 @@
 {
   "name": "nalvie",
   "private": true,
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Open-source pomodoro/focus app for mobile. Grow a personal aquarium by staying off your phone.",
   "license": "AGPL-3.0-only",
   "packageManager": "pnpm@11.22.0",

@@ -9,4 +9,5 @@ export const DEFAULT_SETTINGS: Settings = {
   hasCompletedOnboarding: false,
   soundSource: 'local',
   somafmStationId: DEFAULT_SOMAFM_STATION_ID,
+  pointsBalance: 0,
 };

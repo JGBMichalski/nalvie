@@ -1,4 +1,4 @@
-import type { StreakInfo, TankItem } from "./types.js";
+import type { TankItem } from "./types.js";
 
 export type Rarity = "common" | "uncommon" | "rare";
 
@@ -6,68 +6,38 @@ export interface UnlockPoolItem {
   id: string;
   name: string;
   rarity: Rarity;
-  eligibility: "always" | { minCompletedSessions: number } | { minStreakDays: number };
 }
 
 // 18 items total per spec (10 common, 6 uncommon, 2 rare) — seabed/decor
 // items are commented out for now, leaving 5 common, 3 uncommon, 1 rare.
 export const UNLOCK_POOL: UnlockPoolItem[] = [
-  { id: "clownfish", name: "Clownfish", rarity: "common", eligibility: "always" },
-  { id: "guppy", name: "Guppy", rarity: "common", eligibility: "always" },
-  { id: "neon-tetra", name: "Neon Tetra", rarity: "common", eligibility: "always" },
-  { id: "goldfish", name: "Goldfish", rarity: "uncommon", eligibility: { minCompletedSessions: 3 } },
-  // { id: "starfish", name: "Starfish", rarity: "common", eligibility: "always" },
-  // { id: "seaweed", name: "Seaweed", rarity: "common", eligibility: "always" },
-  // { id: "pebbles", name: "Pebbles", rarity: "common", eligibility: "always" },
-  // { id: "snail", name: "Snail", rarity: "common", eligibility: "always" },
-  { id: "shrimp", name: "Shrimp", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
-  // { id: "bubbler", name: "Bubbler", rarity: "common", eligibility: "always" },
-  { id: "angelfish", name: "Angelfish", rarity: "uncommon", eligibility: { minCompletedSessions: 15 } },
-  { id: "seahorse", name: "Seahorse", rarity: "uncommon", eligibility: { minStreakDays: 3 } },
-  // { id: "coral-branch", name: "Coral Branch", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
-  // { id: "sunken-chest", name: "Sunken Chest", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
-  { id: "jellyfish", name: "Jellyfish", rarity: "rare", eligibility: { minCompletedSessions: 50 } },
-  // { id: "anemone", name: "Anemone", rarity: "uncommon", eligibility: { minCompletedSessions: 5 } },
-  { id: "sea-turtle", name: "Sea Turtle", rarity: "rare", eligibility: { minStreakDays: 7 } },
-  // { id: "glowing-reef", name: "Glowing Reef", rarity: "rare", eligibility: { minStreakDays: 7 } },
+  { id: "clownfish", name: "Clownfish", rarity: "common" },
+  { id: "guppy", name: "Guppy", rarity: "common" },
+  { id: "neon-tetra", name: "Neon Tetra", rarity: "common" },
+  { id: "goldfish", name: "Goldfish", rarity: "uncommon" },
+  // { id: "starfish", name: "Starfish", rarity: "common" },
+  // { id: "seaweed", name: "Seaweed", rarity: "common" },
+  // { id: "pebbles", name: "Pebbles", rarity: "common" },
+  // { id: "snail", name: "Snail", rarity: "common" },
+  { id: "shrimp", name: "Shrimp", rarity: "uncommon" },
+  // { id: "bubbler", name: "Bubbler", rarity: "common" },
+  { id: "angelfish", name: "Angelfish", rarity: "uncommon" },
+  { id: "seahorse", name: "Seahorse", rarity: "uncommon" },
+  // { id: "coral-branch", name: "Coral Branch", rarity: "uncommon" },
+  // { id: "sunken-chest", name: "Sunken Chest", rarity: "uncommon" },
+  { id: "jellyfish", name: "Jellyfish", rarity: "rare" },
+  // { id: "anemone", name: "Anemone", rarity: "uncommon" },
+  { id: "sea-turtle", name: "Sea Turtle", rarity: "rare" },
+  // { id: "glowing-reef", name: "Glowing Reef", rarity: "rare" },
 ];
 
-function isEligible(item: UnlockPoolItem, stats: { completedSessions: number; streak: StreakInfo }): boolean {
-  if (item.eligibility === "always") return true;
-  if ("minCompletedSessions" in item.eligibility) {
-    return stats.completedSessions >= item.eligibility.minCompletedSessions;
-  }
-  return stats.streak.current >= item.eligibility.minStreakDays;
-}
+// Species pre-owned from install, so there's always something to pick for
+// session #1 even before any points have been earned/spent.
+export const STARTER_SPECIES_IDS: readonly string[] = ["clownfish", "guppy"];
 
 /**
- * What the fish picker should offer, regardless of what's already unlocked.
- */
-export function eligiblePoolItems(
-  pool: UnlockPoolItem[],
-  stats: { completedSessions: number; streak: StreakInfo },
-): UnlockPoolItem[] {
-  return pool.filter((item) => isEligible(item, stats));
-}
-
-/**
- * Human-readable explanation of what it takes to unlock an item, for
- * display alongside a locked item in the fish picker. Empty for items
- * that are always eligible (nothing to explain).
- */
-export function unlockRequirementLabel(item: UnlockPoolItem): string {
-  if (item.eligibility === "always") return "";
-  if ("minCompletedSessions" in item.eligibility) {
-    const count = item.eligibility.minCompletedSessions;
-    return `Complete ${count} session${count === 1 ? "" : "s"} to unlock`;
-  }
-  return `Reach a ${item.eligibility.minStreakDays}-day streak to unlock`;
-}
-
-/**
- * Builds the `TankItem` record for a chosen (or, previously, randomly
- * rewarded) item id. `instanceId` must be unique per unlock, even for repeat
- * instances of the same species.
+ * Builds the `TankItem` record for a chosen unlocked item id. `instanceId`
+ * must be unique per unlock, even for repeat instances of the same species.
  */
 export function unlockPoolItemToTankItem(
   pool: UnlockPoolItem[],
