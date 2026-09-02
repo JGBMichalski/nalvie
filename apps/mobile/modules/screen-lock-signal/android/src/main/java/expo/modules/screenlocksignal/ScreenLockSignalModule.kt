@@ -1,13 +1,11 @@
 package expo.modules.screenlocksignal
 
-import android.app.AlarmManager
-import android.app.PendingIntent
 import android.content.BroadcastReceiver
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.util.Log
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -18,15 +16,9 @@ import expo.modules.kotlin.modules.ModuleDefinition
  * glance at a still-locked lock screen, which would misfire the JS-side
  * gate's "unlock restarts the grace clock" rule.
  *
- * Also schedules a *native* alarm to stop ambient audio at the session's
- * completion/failure instant — confirmed on-device that no JS (timers,
- * effects, notification listeners) runs at all while the screen is locked,
- * so nothing JS-driven can silence audio in that state. `AudioControlsService`
- * (expo-audio's own foreground service) already handles an ACTION_PAUSE
- * Intent entirely in native code (see its `onStartCommand`) — this fires
- * that Intent directly from an AlarmManager callback, with zero JS involved.
- *
- * See .scratch/screen-lock-safe-sessions/issues/09-android-native-lock-module-design.md
+ * Also starts/stops `SessionService`, which owns everything that has to happen
+ * on schedule while the screen is locked (countdown notification, stopping the
+ * ambient audio, and the completion notification).
  *
  * Neither ACTION_SCREEN_OFF/ACTION_USER_PRESENT can be manifest-declared
  * (excluded since Android 8.0) — this module owns the only context-registered
@@ -68,54 +60,62 @@ class ScreenLockSignalModule : Module() {
       receiver = null
     }
 
-    // `timestampMs` is an absolute epoch time (matches Date.now()-style math
-    // already used for scheduleFailedNotification/scheduleCompletedNotification
-    // on the JS side, so both fire at the same instant).
-    Function("scheduleStopAudio") { timestampMs: Double ->
-      val context = appContext.reactContext
-      val alarmManager = context?.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
-      if (context != null && alarmManager != null) {
-        val pendingIntent = stopAudioPendingIntent(context)
-        val canScheduleExact =
-          Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
-
-        if (canScheduleExact) {
-          alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timestampMs.toLong(), pendingIntent)
-        } else {
-          // No exact-alarm permission granted — degrades to approximate timing
-          // rather than throwing or silently doing nothing.
-          alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timestampMs.toLong(), pendingIntent)
-        }
+    // `endAtMs` is an absolute epoch time (Date.now()-style), matching
+    // `completesAt` on the JS side.
+    Function("startSessionService") { endAtMs: Double, itemName: String ->
+      sessionIntent(SessionService.ACTION_START)?.let {
+        it.putExtra(SessionService.EXTRA_END_AT_MS, endAtMs.toLong())
+        it.putExtra(SessionService.EXTRA_ITEM_NAME, itemName)
+        startSessionService(it)
       }
     }
 
-    Function("cancelScheduledStopAudio") {
-      val context = appContext.reactContext
-      val alarmManager = context?.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
-      if (context != null && alarmManager != null) {
-        alarmManager.cancel(stopAudioPendingIntent(context))
+    Function("pauseSessionService") {
+      sessionIntent(SessionService.ACTION_PAUSE)?.let { startSessionService(it) }
+    }
+
+    Function("resumeSessionService") { endAtMs: Double ->
+      sessionIntent(SessionService.ACTION_RESUME)?.let {
+        it.putExtra(SessionService.EXTRA_END_AT_MS, endAtMs.toLong())
+        startSessionService(it)
       }
     }
-  }
 
-  // Targets expo-audio's own foreground service directly by component name +
-  // action string — not exported to other apps (android:exported="false" in
-  // its manifest entry), but explicit Intents from within the same app/package
-  // reach it regardless of that flag.
-  private fun stopAudioPendingIntent(context: Context): PendingIntent {
-    val intent = Intent().apply {
-      component = ComponentName(context.packageName, "expo.modules.audio.service.AudioControlsService")
-      action = "expo.modules.audio.action.PAUSE"
+    Function("expectFailureAt") { endAtMs: Double ->
+      sessionIntent(SessionService.ACTION_EXPECT_FAILURE)?.let {
+        it.putExtra(SessionService.EXTRA_END_AT_MS, endAtMs.toLong())
+        startSessionService(it)
+      }
     }
-    return PendingIntent.getService(
-      context,
-      STOP_AUDIO_REQUEST_CODE,
-      intent,
-      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-    )
+
+    Function("stopSessionService") {
+      sessionIntent(SessionService.ACTION_STOP)?.let { startSessionService(it) }
+    }
   }
 
-  companion object {
-    private const val STOP_AUDIO_REQUEST_CODE = 4210
+  private fun sessionIntent(action: String): Intent? {
+    val context = appContext.reactContext ?: return null
+    return Intent(context, SessionService::class.java).setAction(action)
+  }
+
+  private fun startSessionService(intent: Intent) {
+    val context = appContext.reactContext ?: return
+    try {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        context.startForegroundService(intent)
+      } else {
+        context.startService(intent)
+      }
+      Log.i(TAG, "started SessionService: ${intent.action}")
+    } catch (e: Exception) {
+      // Background-start restrictions can refuse this. Logged rather than
+      // swallowed: a refusal means no countdown, no timed audio stop and no
+      // completion notification, which is the entire feature.
+      Log.e(TAG, "start of SessionService REFUSED: ${intent.action}", e)
+    }
+  }
+
+  private companion object {
+    const val TAG = "NalvieSession"
   }
 }

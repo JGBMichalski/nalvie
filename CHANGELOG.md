@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- The lock screen now shows a live countdown for an in-progress session ("5 mins remaining") instead of a fixed "25 min session" label.
+
+### Fixed
+
+- Ambient sound now stops the moment a session's timer reaches zero, and the session's lock-screen display is cleared.
+- The "your tank grew" notification now arrives exactly when the session ends.
+
+### Changed
+
+- An in-progress session is now native code.
+
 ## [0.1.3] - 2026-09-01
 
 ### Added

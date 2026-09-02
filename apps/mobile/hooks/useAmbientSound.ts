@@ -13,10 +13,6 @@ const FADE_STEPS = 20;
 const FADE_STEP_MS = FADE_MS / FADE_STEPS;
 
 export type AmbientSource = { type: 'local' } | { type: 'somafm'; stationId: string };
-export type LockScreenMetadata = { title: string; artist: string };
-
-// Android-only: `sessionActive` keeps the notification alive showing `metadata`
-export type AndroidLockScreenOptions = { metadata: LockScreenMetadata; sessionActive: boolean };
 
 // Single place that turns the persisted setting into a source
 export function toAmbientSource(settings: Pick<Settings, 'soundSource' | 'somafmStationId'>): AmbientSource {
@@ -41,12 +37,11 @@ function safely(action: () => void): void {
 
 // Loops the track for as long as `shouldPlay` is true, fading volume in/out
 // over FADE_MS on every start/stop. `resetOnStop` rewinds to the start once
-// the fade-out finishes. 
+// the fade-out finishes.
 export function useAmbientSound(
   shouldPlay: boolean,
   source: AmbientSource,
   resetOnStop = false,
-  androidLockScreen?: AndroidLockScreenOptions,
 ): void {
   const sourceKey = source.type === 'local' ? 'local' : `somafm:${source.stationId}`;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -110,21 +105,4 @@ export function useAmbientSound(
 
     return stopFade;
   }, [shouldPlay, resetOnStop, player, source.type]);
-
-  // Android-only lock-screen notification content
-  useEffect(() => {
-    if (Platform.OS !== 'android') return;
-
-    if (androidLockScreen?.sessionActive) {
-      safely(() => player.setActiveForLockScreen(true, androidLockScreen.metadata));
-    } else {
-      safely(() => player.clearLockScreenControls());
-    }
-  }, [androidLockScreen?.sessionActive, player]);
-
-  // Refresh the countdown (or "Paused" text) shown on lock-screen
-  useEffect(() => {
-    if (Platform.OS !== 'android' || !androidLockScreen?.sessionActive) return;
-    safely(() => player.updateLockScreenMetadata(androidLockScreen.metadata));
-  }, [androidLockScreen?.sessionActive, androidLockScreen?.metadata, player]);
 }

@@ -4,6 +4,7 @@
   "main": "expo-router/entry",
   "license": "AGPL-3.0-only",
   "dependencies": {
+    "@bacons/apple-targets": "^5.0.0",
     "@expo/vector-icons": "^15.1.1",
     "@nalvie/core": "workspace:*",
     "@react-native-community/slider": "5.2.0",

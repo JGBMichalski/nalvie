@@ -5,7 +5,13 @@ import * as Notifications from 'expo-notifications';
 import { createInMemorySessionRepository } from '../lib/in-memory-session-repository';
 import { resetSettingsRepositoryForTests, settingsRepository } from '../lib/repository';
 import { useSessionLoop } from '../hooks/useSessionLoop';
-import { cancelNativeAudioStop, scheduleNativeAudioStop } from '../modules/screen-lock-signal';
+import {
+  expectFailureAt,
+  pauseSessionService,
+  resumeSessionService,
+  startSessionService,
+  stopSessionService,
+} from '../modules/screen-lock-signal';
 import { makeFakeAppState } from './test-utils/fake-app-state';
 
 jest.mock('expo-notifications', () => ({
@@ -347,8 +353,8 @@ describe('useSessionLoop', () => {
     expect(result.current.session?.pausedMs).toBe(pausedMsAfterFirstUse);
   });
 
-  describe('native audio stop (Android-only, doesn\'t depend on JS running while backgrounded)', () => {
-    it('schedules a native stop at the session\'s completion instant when it starts', async () => {
+  describe('native session service (owns the countdown/audio-stop/completion while JS is suspended)', () => {
+    it('hands the session to the native service with its completion instant when it starts', async () => {
       const repo = createInMemorySessionRepository();
       const { result } = renderHook(() => useSessionLoop(repo));
       await act(async () => {});
@@ -357,10 +363,10 @@ describe('useSessionLoop', () => {
         await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
       });
 
-      expect(scheduleNativeAudioStop).toHaveBeenCalledWith(completesAt(result.current.session!));
+      expect(startSessionService).toHaveBeenCalledWith(completesAt(result.current.session!), 'Clownfish');
     });
 
-    it('cancels the native stop on pause, and reschedules it (credited pause time included) on resume', async () => {
+    it('pauses the native service on pause, and resumes it (credited pause time included) on resume', async () => {
       const repo = createInMemorySessionRepository();
       const { result } = renderHook(() => useSessionLoop(repo));
       await act(async () => {});
@@ -368,19 +374,19 @@ describe('useSessionLoop', () => {
       await act(async () => {
         await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
       });
-      (cancelNativeAudioStop as jest.Mock).mockClear();
-      (scheduleNativeAudioStop as jest.Mock).mockClear();
+      (pauseSessionService as jest.Mock).mockClear();
+      (resumeSessionService as jest.Mock).mockClear();
 
       act(() => result.current.togglePause());
-      expect(cancelNativeAudioStop).toHaveBeenCalledTimes(1);
+      expect(pauseSessionService).toHaveBeenCalledTimes(1);
 
       jest.advanceTimersByTime(30_000);
       act(() => result.current.togglePause()); // resume
 
-      expect(scheduleNativeAudioStop).toHaveBeenCalledWith(completesAt(result.current.session!));
+      expect(resumeSessionService).toHaveBeenCalledWith(completesAt(result.current.session!));
     });
 
-    it('reschedules the native stop to the grace deadline while genuinely leaving, and back to the completion instant on early return', async () => {
+    it('brings the native deadline forward to the grace deadline while genuinely leaving, and back to the completion instant on early return', async () => {
       const repo = createInMemorySessionRepository();
       const appState = makeFakeAppState();
       const { result } = renderHook(() => useSessionLoop(repo, appState as never));
@@ -390,22 +396,23 @@ describe('useSessionLoop', () => {
         await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
       });
       const session = result.current.session!;
-      (scheduleNativeAudioStop as jest.Mock).mockClear();
+      (expectFailureAt as jest.Mock).mockClear();
+      (resumeSessionService as jest.Mock).mockClear();
       jest.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
 
       await act(async () => {
         appState.emit('background');
       });
-      expect(scheduleNativeAudioStop).toHaveBeenLastCalledWith(Date.now() + GRACE_PERIOD_MS);
+      expect(expectFailureAt).toHaveBeenLastCalledWith(Date.now() + GRACE_PERIOD_MS);
 
       await act(async () => {
         jest.advanceTimersByTime(GRACE_PERIOD_MS - 1000); // returns within the grace period
         appState.emit('active');
       });
-      expect(scheduleNativeAudioStop).toHaveBeenLastCalledWith(completesAt(session));
+      expect(resumeSessionService).toHaveBeenLastCalledWith(completesAt(session));
     });
 
-    it('cancels the native stop once the session resolves', async () => {
+    it('stops the native service once the session resolves', async () => {
       const repo = createInMemorySessionRepository();
       const { result } = renderHook(() => useSessionLoop(repo));
       await act(async () => {});
@@ -413,14 +420,14 @@ describe('useSessionLoop', () => {
       await act(async () => {
         await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
       });
-      (cancelNativeAudioStop as jest.Mock).mockClear();
+      (stopSessionService as jest.Mock).mockClear();
 
       await act(async () => {
         jest.advanceTimersByTime(MIN_SESSION_MINUTES * 60_000 + 1000);
         await Promise.resolve();
       });
 
-      expect(cancelNativeAudioStop).toHaveBeenCalled();
+      expect(stopSessionService).toHaveBeenCalled();
     });
   });
 
@@ -500,22 +507,7 @@ describe('useSessionLoop', () => {
   });
 
   describe('session-result notifications (Ticket 08)', () => {
-    it('schedules a completed notification at session start when notifications are enabled', async () => {
-      const repo = createInMemorySessionRepository();
-      const { result } = renderHook(() => useSessionLoop(repo));
-      await act(async () => {});
-
-      await act(async () => {
-        await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
-      });
-
-      expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(1);
-      const call = (Notifications.scheduleNotificationAsync as jest.Mock).mock.calls[0][0];
-      expect(call.content.body).toMatch(/tank grew/i);
-    });
-
-    it('does not schedule anything when OS notification permission is not granted', async () => {
-      (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'denied' });
+    it('leaves the completed notification to the native service instead of scheduling one', async () => {
       const repo = createInMemorySessionRepository();
       const { result } = renderHook(() => useSessionLoop(repo));
       await act(async () => {});
@@ -525,24 +517,26 @@ describe('useSessionLoop', () => {
       });
 
       expect(Notifications.scheduleNotificationAsync).not.toHaveBeenCalled();
+      expect(startSessionService).toHaveBeenCalledWith(completesAt(result.current.session!), 'Clownfish');
     });
 
-    it('cancels the completed notification once the session resolves in the foreground', async () => {
+    it('does not schedule anything when OS notification permission is not granted', async () => {
+      (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'denied' });
       const repo = createInMemorySessionRepository();
-      const { result } = renderHook(() => useSessionLoop(repo));
+      const appState = makeFakeAppState();
+      const { result } = renderHook(() => useSessionLoop(repo, appState as never));
       await act(async () => {});
 
       await act(async () => {
         await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
       });
-
       await act(async () => {
-        jest.advanceTimersByTime(MIN_SESSION_MINUTES * 60_000 + 1000);
-        await Promise.resolve();
+        appState.emit('background');
       });
 
-      expect(Notifications.cancelScheduledNotificationAsync).toHaveBeenCalledWith('scheduled-id');
+      expect(Notifications.scheduleNotificationAsync).not.toHaveBeenCalled();
     });
+
 
     it('schedules a failed-session notification while backgrounded, and cancels it on return', async () => {
       const repo = createInMemorySessionRepository();
@@ -626,41 +620,7 @@ describe('useSessionLoop', () => {
       expect(Notifications.cancelScheduledNotificationAsync).not.toHaveBeenCalledWith('failed-id');
     });
 
-    it('cancels the completed notification while paused, since paused time no longer counts toward it', async () => {
-      const repo = createInMemorySessionRepository();
-      const { result } = renderHook(() => useSessionLoop(repo));
-      await act(async () => {});
 
-      await act(async () => {
-        await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
-      });
-      (Notifications.cancelScheduledNotificationAsync as jest.Mock).mockClear();
-
-      act(() => result.current.togglePause());
-
-      expect(Notifications.cancelScheduledNotificationAsync).toHaveBeenCalledWith('scheduled-id');
-    });
-
-    it('reschedules the completed notification with an adjusted time after a pause credits time back', async () => {
-      const repo = createInMemorySessionRepository();
-      const { result } = renderHook(() => useSessionLoop(repo));
-      await act(async () => {});
-
-      await act(async () => {
-        await result.current.startSession(MIN_SESSION_MINUTES, 'clownfish');
-      });
-      (Notifications.scheduleNotificationAsync as jest.Mock).mockClear();
-
-      act(() => result.current.togglePause());
-      jest.advanceTimersByTime(30_000);
-      await act(async () => {
-        result.current.togglePause(); // resume
-        await Promise.resolve();
-      });
-
-      expect(Notifications.cancelScheduledNotificationAsync).toHaveBeenCalledWith('scheduled-id');
-      expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(1);
-    });
   });
 
   describe('session-scoped ambience mute (Ticket 09)', () => {

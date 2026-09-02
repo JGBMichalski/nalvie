@@ -7,6 +7,10 @@
 module.exports = {
   addLockedListener: jest.fn(() => ({ remove: jest.fn() })),
   addUnlockedListener: jest.fn(() => ({ remove: jest.fn() })),
-  scheduleNativeAudioStop: jest.fn(),
-  cancelNativeAudioStop: jest.fn(),
+  startSessionService: jest.fn(),
+  pauseSessionService: jest.fn(),
+  resumeSessionService: jest.fn(),
+  expectFailureAt: jest.fn(),
+  stopSessionService: jest.fn(),
+  isSessionServiceSupported: true,
 };

@@ -12,7 +12,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.nalvie"
+      "bundleIdentifier": "com.anonymous.nalvie",
+      "infoPlist": {
+        "NSSupportsLiveActivities": true
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -37,6 +40,12 @@
       "expo-router",
       "expo-status-bar",
       "expo-notifications",
+      [
+        "@bacons/apple-targets",
+        {
+          "appleTeamId": "REPLACE_WITH_APPLE_TEAM_ID"
+        }
+      ],
       [
         "expo-audio",
         {

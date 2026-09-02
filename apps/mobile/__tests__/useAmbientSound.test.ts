@@ -45,109 +45,17 @@ describe('useAmbientSound', () => {
     );
   });
 
-  describe('Android lock-screen notification content (Ticket 15)', () => {
-    beforeEach(() => {
-      Platform.OS = 'android';
-    });
+  describe('lock-screen responsibilities moved to the native session service', () => {
+    it('never touches expo-audio lock-screen controls, on either platform', () => {
+      for (const os of ['android', 'ios'] as const) {
+        Platform.OS = os;
+        (useAudioPlayer as jest.Mock).mockClear();
+        renderHook(() => useAmbientSound(true, LOCAL));
+        const player = (useAudioPlayer as jest.Mock).mock.results[0].value;
 
-    it('activates lock-screen controls with the given metadata once playback starts', () => {
-      renderHook(() =>
-        useAmbientSound(true, LOCAL, false, {
-          metadata: { title: '12 min remaining', artist: 'Nalvie focus session' },
-          sessionActive: true,
-        }),
-      );
-      const player = (useAudioPlayer as jest.Mock).mock.results[0].value;
-
-      expect(player.setActiveForLockScreen).toHaveBeenCalledWith(true, {
-        title: '12 min remaining',
-        artist: 'Nalvie focus session',
-      });
-    });
-
-    it('refreshes the metadata when it changes while still playing', () => {
-      const { rerender } = renderHook<void, { title: string }>(
-        ({ title }) =>
-          useAmbientSound(true, LOCAL, false, {
-            metadata: { title, artist: 'Nalvie focus session' },
-            sessionActive: true,
-          }),
-        { initialProps: { title: '12 min remaining' } },
-      );
-      const player = (useAudioPlayer as jest.Mock).mock.results[0].value;
-
-      rerender({ title: '11 min remaining' });
-
-      expect(player.updateLockScreenMetadata).toHaveBeenLastCalledWith({
-        title: '11 min remaining',
-        artist: 'Nalvie focus session',
-      });
-    });
-
-    it('clears lock-screen controls when playback stops', () => {
-      const { rerender } = renderHook<void, { shouldPlay: boolean }>(
-        ({ shouldPlay }) =>
-          useAmbientSound(shouldPlay, LOCAL, false, {
-            metadata: { title: '12 min remaining', artist: 'Nalvie focus session' },
-            sessionActive: shouldPlay,
-          }),
-        { initialProps: { shouldPlay: true } },
-      );
-      const player = (useAudioPlayer as jest.Mock).mock.results[0].value;
-
-      rerender({ shouldPlay: false });
-
-      expect(player.clearLockScreenControls).toHaveBeenCalled();
-    });
-
-    it('does not touch lock-screen controls on iOS', () => {
-      Platform.OS = 'ios';
-      renderHook(() =>
-        useAmbientSound(true, LOCAL, false, {
-          metadata: { title: '12 min remaining', artist: 'Nalvie focus session' },
-          sessionActive: true,
-        }),
-      );
-      const player = (useAudioPlayer as jest.Mock).mock.results[0].value;
-
-      expect(player.setActiveForLockScreen).not.toHaveBeenCalled();
-    });
-
-    it('updates to "Paused" instead of clearing the notification when the session is paused, not ended', () => {
-      const { rerender } = renderHook<void, { shouldPlay: boolean; title: string }>(
-        ({ shouldPlay, title }) =>
-          useAmbientSound(shouldPlay, LOCAL, false, {
-            metadata: { title, artist: 'Nalvie focus session' },
-            sessionActive: true, // still in-progress even while paused
-          }),
-        { initialProps: { shouldPlay: true, title: '12 min remaining' } },
-      );
-      const player = (useAudioPlayer as jest.Mock).mock.results[0].value;
-
-      // Pausing: shouldPlay flips false, but sessionActive stays true.
-      rerender({ shouldPlay: false, title: 'Paused' });
-
-      expect(player.clearLockScreenControls).not.toHaveBeenCalled();
-      expect(player.updateLockScreenMetadata).toHaveBeenLastCalledWith({
-        title: 'Paused',
-        artist: 'Nalvie focus session',
-      });
-    });
-
-    it('clears the notification once the session actually ends (sessionActive: false)', () => {
-      const { rerender } = renderHook<void, { sessionActive: boolean }>(
-        ({ sessionActive }) =>
-          useAmbientSound(sessionActive, LOCAL, false, {
-            metadata: { title: '12 min remaining', artist: 'Nalvie focus session' },
-            sessionActive,
-          }),
-        { initialProps: { sessionActive: true } },
-      );
-      const player = (useAudioPlayer as jest.Mock).mock.results[0].value;
-
-      rerender({ sessionActive: false });
-
-      expect(player.clearLockScreenControls).toHaveBeenCalled();
+        expect(player.setActiveForLockScreen).not.toHaveBeenCalled();
+        expect(player.updateLockScreenMetadata).not.toHaveBeenCalled();
+      }
     });
   });
 

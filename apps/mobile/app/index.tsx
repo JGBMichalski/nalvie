@@ -197,17 +197,7 @@ export default function HomeScreen() {
   // Ambience plays only while actively focusing (not paused or session-muted)
   // Resets to the start of the loop once the session actually resolves.
   const ambienceShouldPlay = phase === 'in-progress' && !isPaused && !isSessionMuted && soundEnabled;
-  const lockScreenMetadata = useMemo(
-    () => ({
-      title: isPaused ? 'Paused' : `${session?.plannedDurationMinutes ?? 0} min session`,
-      artist: 'Nalvie focus session',
-    }),
-    [session?.plannedDurationMinutes, isPaused],
-  );
-  useAmbientSound(ambienceShouldPlay, ambientSource, phase !== 'in-progress', {
-    metadata: lockScreenMetadata,
-    sessionActive: phase === 'in-progress',
-  });
+  useAmbientSound(ambienceShouldPlay, ambientSource, phase !== 'in-progress');
 
   const changeStation = useCallback(async (stationId: string) => {
     const current = await settingsRepository.getSettings();

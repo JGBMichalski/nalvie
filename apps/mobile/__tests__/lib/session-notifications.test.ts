@@ -1,12 +1,11 @@
 import * as Notifications from 'expo-notifications';
-import { GRACE_PERIOD_MS, type FocusSession } from '@nalvie/core';
+import { GRACE_PERIOD_MS } from '@nalvie/core';
 
 import {
   addFailedNotificationDeliveredListener,
   cancelAllPendingSessionNotifications,
   cancelFailedNotification,
   cancelSessionNotifications,
-  scheduleCompletedNotification,
   scheduleFailedNotification,
   sendLeaveWarningNotification,
 } from '../../lib/session-notifications';
@@ -21,55 +20,11 @@ jest.mock('expo-notifications', () => ({
   SchedulableTriggerInputTypes: { DATE: 'date' },
 }));
 
-function makeSession(overrides: Partial<FocusSession> = {}): FocusSession {
-  return {
-    id: 's1',
-    plannedDurationMinutes: 25,
-    startedAt: '2026-01-01T00:00:00.000Z',
-    endedAt: null,
-    outcome: null,
-    selectedItemId: 'clownfish',
-    awardedItemId: null,
-    pausedMs: 0,
-    ...overrides,
-  };
-}
-
 describe('session-notifications', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
     (Notifications.scheduleNotificationAsync as jest.Mock).mockResolvedValue('scheduled-id');
-  });
-
-  describe('scheduleCompletedNotification', () => {
-    it('does nothing when OS notification permission is not granted', async () => {
-      (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'denied' });
-
-      await scheduleCompletedNotification(makeSession());
-
-      expect(Notifications.scheduleNotificationAsync).not.toHaveBeenCalled();
-    });
-
-    it('schedules a "tank grew" notification at startedAt + plannedDurationMinutes (+ any credited pause)', async () => {
-      await scheduleCompletedNotification(makeSession({ pausedMs: 5_000 }));
-
-      expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(1);
-      const call = (Notifications.scheduleNotificationAsync as jest.Mock).mock.calls[0][0];
-      expect(call.content.body).toMatch(/tank grew/i);
-      expect(call.trigger).toEqual({
-        type: 'date',
-        date: new Date('2026-01-01T00:25:05.000Z'),
-      });
-    });
-
-    it('cancels a previously-scheduled completed notification before scheduling a new one', async () => {
-      await scheduleCompletedNotification(makeSession());
-      await scheduleCompletedNotification(makeSession({ pausedMs: 60_000 })); // e.g. rescheduled after a pause
-
-      expect(Notifications.cancelScheduledNotificationAsync).toHaveBeenCalledWith('scheduled-id');
-      expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(2);
-    });
   });
 
   describe('scheduleFailedNotification', () => {
@@ -164,14 +119,13 @@ describe('session-notifications', () => {
       expect(Notifications.cancelScheduledNotificationAsync).not.toHaveBeenCalled();
     });
 
-    it('cancels both a pending completed and failed notification', async () => {
-      await scheduleCompletedNotification(makeSession());
+    it('cancels the pending failed notification', async () => {
       await scheduleFailedNotification();
       (Notifications.cancelScheduledNotificationAsync as jest.Mock).mockClear();
 
       await cancelSessionNotifications();
 
-      expect(Notifications.cancelScheduledNotificationAsync).toHaveBeenCalledTimes(2);
+      expect(Notifications.cancelScheduledNotificationAsync).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -183,7 +137,7 @@ describe('session-notifications', () => {
     });
 
     it('forgets any remembered ids, so a later cancel is a no-op rather than cancelling stale ids', async () => {
-      await scheduleCompletedNotification(makeSession());
+      await scheduleFailedNotification();
 
       await cancelAllPendingSessionNotifications();
       (Notifications.cancelScheduledNotificationAsync as jest.Mock).mockClear();

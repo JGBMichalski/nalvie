@@ -12,3 +12,12 @@ android {
     abortOnError false
   }
 }
+
+dependencies {
+  // MediaSessionCompat + NotificationCompat.MediaStyle. The session countdown
+  // is posted as a media notification so it lands on the lock screen's media
+  // card, which is rendered regardless of notification ranking — a plain
+  // notification gets collapsed into the icon row on Android 16+ and can't be
+  // read at a glance.
+  implementation 'androidx.media:media:1.7.0'
+}

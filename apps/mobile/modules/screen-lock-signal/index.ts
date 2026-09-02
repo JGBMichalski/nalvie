@@ -1,19 +1,13 @@
 /**
- * Local Expo Module: detects the device screen locking/unlocking, and (on
- * Android) natively schedules audio to stop at a session's completion/failure
- * instant — see scheduleNativeAudioStop below for why this needs to be
- * native, not JS.
+ * Local Expo Module: detects the device screen locking/unlocking, and drives
+ * the native session lifecycle that has to keep running while the screen is
+ * off.
  *
  * iOS: backed by Apple's protected-data lock/unlock notifications.
  * Android: backed by ACTION_SCREEN_OFF (lock) / ACTION_USER_PRESENT (unlock,
  * not ACTION_SCREEN_ON — that fires on any wake, including a glance at a
  * still-locked lock screen).
- *
- * See .scratch/screen-lock-safe-sessions/spec.md for the full design and
- * .scratch/screen-lock-safe-sessions/issues/08 and 09 for the per-platform
- * rationale.
  */
-import { Platform } from 'react-native';
 import { requireNativeModule, type EventSubscription } from 'expo-modules-core';
 
 // expo-modules-core's own `NativeModule<TEventsMap>` type doesn't thread its
@@ -21,9 +15,11 @@ import { requireNativeModule, type EventSubscription } from 'expo-modules-core';
 // defines its own minimal shape rather than fighting that type.
 type ScreenLockSignalModule = {
   addListener(eventName: 'onLocked' | 'onUnlocked', listener: () => void): EventSubscription;
-  // Android-only — see scheduleStopAudio's own doc comment below.
-  scheduleStopAudio(timestampMs: number): void;
-  cancelScheduledStopAudio(): void;
+  startSessionService(endAtMs: number, itemName: string): void;
+  pauseSessionService(): void;
+  resumeSessionService(endAtMs: number): void;
+  expectFailureAt(endAtMs: number): void;
+  stopSessionService(): void;
 };
 
 const nativeModule = requireNativeModule<ScreenLockSignalModule>('ScreenLockSignal');
@@ -37,25 +33,45 @@ export function addUnlockedListener(listener: () => void): EventSubscription {
 }
 
 /**
- * Android-only. Schedules a *native* alarm (AlarmManager, not a JS timer) that
- * directly commands expo-audio's foreground service to pause — confirmed
- * on-device that no JS runs at all while the screen is locked, so this is
- * the only mechanism that can actually silence audio in that state. `atMs`
- * is an absolute epoch timestamp (`Date.now()`-style), matching
- * scheduleFailedNotification/scheduleCompletedNotification's own math so all
- * three fire at the same instant.
+ * Hands the running session to native code for its whole duration. Everything
+ * that has to happen on schedule while locked lives there: the live countdown
+ * notification, stopping the ambient audio at `endAtMs`, and the completion
+ * notification.
  *
- * No iOS equivalent exists yet (no analogous native service to command
- * directly) — a no-op there.
+ * `endAtMs` is an absolute epoch timestamp (`Date.now()`-style), matching
+ * `completesAt` from core. `itemName` is baked in up front because the
+ * completion notification is composed natively.
+ *
+ * Android is backed by a foreground service; iOS by a Live Activity plus a
+ * native timer (the audio background mode keeps the process running).
  */
-export function scheduleNativeAudioStop(atMs: number): void {
-  if (Platform.OS !== 'android') return;
-  nativeModule.scheduleStopAudio(atMs);
+export function startSessionService(endAtMs: number, itemName: string): void {
+  nativeModule.startSessionService(endAtMs, itemName);
 }
 
-export function cancelNativeAudioStop(): void {
-  if (Platform.OS !== 'android') return;
-  nativeModule.cancelScheduledStopAudio();
+/** Freezes the countdown and cancels the scheduled stop; no end time while paused. */
+export function pauseSessionService(): void {
+  nativeModule.pauseSessionService();
 }
 
+/** Resumes with a recomputed end time (pause time doesn't count toward completion). */
+export function resumeSessionService(endAtMs: number): void {
+  nativeModule.resumeSessionService(endAtMs);
+}
 
+/**
+ * Brings the scheduled audio stop forward to the instant the leave-detection
+ * grace period expires, and suppresses the completion notification.
+ */
+export function expectFailureAt(endAtMs: number): void {
+  nativeModule.expectFailureAt(endAtMs);
+}
+
+/**
+ * Tears down the session UI and cancels the scheduled stop. Called whenever a
+ * session resolves in JS (completed or failed in-app) so the native side
+ * doesn't also fire its own completion.
+ */
+export function stopSessionService(): void {
+  nativeModule.stopSessionService();
+}

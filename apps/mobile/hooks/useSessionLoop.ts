@@ -26,14 +26,18 @@ import { useLeaveDetection, type AppStateLike } from './useLeaveDetection';
 import {
   addFailedNotificationDeliveredListener,
   cancelAllPendingSessionNotifications,
-  cancelCompletedNotification,
   cancelFailedNotification,
   cancelSessionNotifications,
-  scheduleCompletedNotification,
   scheduleFailedNotification,
   sendLeaveWarningNotification,
 } from '../lib/session-notifications';
-import { cancelNativeAudioStop, scheduleNativeAudioStop } from '../modules/screen-lock-signal';
+import {
+  expectFailureAt,
+  pauseSessionService,
+  resumeSessionService,
+  startSessionService,
+  stopSessionService,
+} from '../modules/screen-lock-signal';
 import { settingsRepository } from '../lib/repository';
 
 export type SessionPhase = 'idle' | 'in-progress' | 'toast-complete' | 'toast-failed';
@@ -43,6 +47,12 @@ const TOAST_DURATION_MS = 2500;
 
 function createId(): string {
   return `session-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+}
+
+// The native completion notification is composed without JS, so the name has
+// to be handed over when the session starts.
+function itemNameFor(itemId: string): string {
+  return UNLOCK_POOL.find((item) => item.id === itemId)?.name ?? 'new fish';
 }
 
 async function adjustPointsBalance(delta: number): Promise<void> {
@@ -94,8 +104,7 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
 
   const finishFail = useCallback(
     async (current: FocusSession) => {
-      cancelNativeAudioStop();
-      await cancelCompletedNotification();
+      stopSessionService();
       await repository.saveSession(failSession(current));
       setSession(null);
       setIsPaused(false);
@@ -123,7 +132,7 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
       const isFreshUnlock = !unlockedItems.some((existing) => existing.speciesId === item.speciesId);
 
       await cancelSessionNotifications();
-      cancelNativeAudioStop();
+      stopSessionService();
       await repository.saveTankItem(item);
       await repository.saveSession(completeSession(current));
       await adjustPointsBalance(pointsForSession(current.plannedDurationMinutes));
@@ -170,10 +179,10 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
       if (graceClockRunning) {
         void sendLeaveWarningNotification();
         void scheduleFailedNotification();
-        scheduleNativeAudioStop(Date.now() + GRACE_PERIOD_MS);
+        expectFailureAt(Date.now() + GRACE_PERIOD_MS);
       } else {
         void cancelFailedNotification();
-        if (sessionRef.current) scheduleNativeAudioStop(completesAt(sessionRef.current));
+        if (sessionRef.current) resumeSessionService(completesAt(sessionRef.current));
       }
     },
   );
@@ -187,8 +196,7 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
       setIsPaused(false);
       setIsSessionMuted(false);
       setPhase('in-progress');
-      await scheduleCompletedNotification(created);
-      scheduleNativeAudioStop(completesAt(created));
+      startSessionService(completesAt(created), itemNameFor(selectedItemId));
     },
     [repository],
   );
@@ -202,14 +210,12 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
       const resumed = applyPause(session, pauseDurationMs);
       setSession(resumed);
       setIsPaused(false);
-      void scheduleCompletedNotification(resumed);
-      scheduleNativeAudioStop(completesAt(resumed));
+      resumeSessionService(completesAt(resumed));
     } else if (!hasUsedPause(session)) {
       pauseStartedAtRef.current = Date.now();
       setIsPaused(true);
       // Paused time doesn't count toward completion
-      void cancelCompletedNotification();
-      cancelNativeAudioStop();
+      pauseSessionService();
     }
   }, [session, isPaused]);
 
