@@ -10,7 +10,7 @@ import UserNotifications
 /// Also owns the in-progress session's lock-screen presence, mirroring
 /// Android's `SessionService`: a Live Activity for the countdown, a scheduled
 /// local notification for completion, and a timer that silences the ambient
-/// audio the moment the session is due to end.
+/// audio and plays a completion chime the moment the session is due to end.
 ///
 /// Known limitation: on a passcode-less device (no Data Protection), the
 /// lock/unlock notifications likely never fire at all. There is no
@@ -26,6 +26,9 @@ public class ScreenLockSignalModule: Module {
   private var endTimer: Timer?
   private var itemName: String = "new fish"
   private var expectingFailure = false
+
+  private var chimePlayer: AVAudioPlayer?
+  private var chimeDelegate: ChimeCompletionDelegate?
 
   private static let completedNotificationId = "nalvie-session-completed"
 
@@ -123,7 +126,9 @@ public class ScreenLockSignalModule: Module {
 
   private func handleSessionEnded() {
     endTimer = nil
+    
     stopAudio()
+    playChime()
     endActivity()
   }
 
@@ -133,6 +138,44 @@ public class ScreenLockSignalModule: Module {
     } catch {
       // Playback is decorative; never let this disrupt resolving the session.
     }
+  }
+
+  private func playChime() {
+    guard let url = Self.chimeURL() else { return }
+
+    do {
+      let session = AVAudioSession.sharedInstance()
+      try session.setCategory(.playback, mode: .default, options: [.duckOthers])
+      try session.setActive(true)
+
+      let player = try AVAudioPlayer(contentsOf: url)
+      let delegate = ChimeCompletionDelegate { [weak self] in
+        self?.finishChime()
+      }
+      player.delegate = delegate
+      chimeDelegate = delegate
+      chimePlayer = player
+      player.play()
+    } catch {
+      finishChime()
+    }
+  }
+
+  private func finishChime() {
+    chimePlayer = nil
+    chimeDelegate = nil
+    try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+  }
+
+  private static func chimeURL() -> URL? {
+    let moduleBundle = Bundle(for: ScreenLockSignalModule.self)
+    if
+      let resourceBundleURL = moduleBundle.url(forResource: "ScreenLockSignal", withExtension: "bundle"),
+      let resourceBundle = Bundle(url: resourceBundleURL)
+    {
+      return resourceBundle.url(forResource: "bell_ding", withExtension: "mp3")
+    }
+    return moduleBundle.url(forResource: "bell_ding", withExtension: "mp3")
   }
 
   // MARK: - Live Activity
@@ -204,5 +247,21 @@ public class ScreenLockSignalModule: Module {
   private func cancelCompletedNotification() {
     UNUserNotificationCenter.current()
       .removePendingNotificationRequests(withIdentifiers: [Self.completedNotificationId])
+  }
+}
+
+private class ChimeCompletionDelegate: NSObject, AVAudioPlayerDelegate {
+  private let onFinish: () -> Void
+
+  init(onFinish: @escaping () -> Void) {
+    self.onFinish = onFinish
+  }
+
+  func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+    onFinish()
+  }
+
+  func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
+    onFinish()
   }
 }

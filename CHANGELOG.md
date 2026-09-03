@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - The lock screen now shows a live countdown for an in-progress session instead of a fixed "25 min session" label.
+- A short completion chime plays the moment a session's timer reaches zero, on both platforms, whether the screen is locked or not.
 
 ### Fixed
 
@@ -18,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - An in-progress session is now native code.
+- Audio at session end is now a hard stop followed by the completion chime.
 
 ## [0.1.3] - 2026-09-01
 

@@ -15,4 +15,8 @@ Pod::Spec.new do |s|
   s.dependency 'ExpoModulesCore'
 
   s.source_files = 'ScreenLockSignal/**/*.{h,m,swift}'
+
+  s.resource_bundles = {
+    'ScreenLockSignal' => ['ScreenLockSignal/Resources/**/*']
+  }
 end

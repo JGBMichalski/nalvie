@@ -5,13 +5,13 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
+import android.media.MediaPlayer
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -34,7 +34,6 @@ import kotlin.math.ceil
 class SessionService : Service() {
   private val handler = Handler(Looper.getMainLooper())
   private var tick: Runnable? = null
-  private var fadeRunnable: Runnable? = null
 
   private var endAtMs: Long = 0
   private var sessionStartedAtMs: Long = 0 // Only used to give the media card a progress bar
@@ -45,8 +44,6 @@ class SessionService : Service() {
   // means "session failed", so the audio still stops but the completion
   // notification must not fire.
   private var expectingFailure: Boolean = false
-
-  private var audioFocusRequest: AudioFocusRequest? = null
 
   /**
    * Backs the notification's MediaStyle. Its only job is to make the countdown
@@ -181,12 +178,7 @@ class SessionService : Service() {
   private fun onSessionComplete() {
     Log.i(TAG, "onSessionComplete expectingFailure=$expectingFailure locked=${isLockedOrNonInteractive()}")
 
-    if (isLockedOrNonInteractive()) {
-      fadeOutThenStopAudio {
-        if (!expectingFailure) notifyCompleted()
-        stopSessionService()
-      }
-    } else {
+    hardStopAudioThenPlayBell {
       if (!expectingFailure) notifyCompleted()
       stopSessionService()
     }
@@ -202,46 +194,53 @@ class SessionService : Service() {
 
   // --- audio -------------------------------------------------------------
 
-  private fun fadeOutThenStopAudio(onFinished: () -> Unit) {
-    val intent = Intent().apply {
-      component = ComponentName(packageName, "expo.modules.audio.service.AudioControlsService")
-      action = "expo.modules.audio.action.FADE_PAUSE"
+  private fun hardStopAudioThenPlayBell(onFinished: () -> Unit) {
+    val request = requestAudioFocus()
+    playBell {
+      request?.let { releaseAudioFocus(it) }
+      onFinished()
     }
-    try {
-      startService(intent)
+  }
+
+  private fun playBell(onFinished: () -> Unit) {
+    val player = try {
+      MediaPlayer.create(this, R.raw.bell_ding)
     } catch (e: Exception) {
-      Log.w(TAG, "FADE_PAUSE refused, falling back to an instant stop", e)
-      stopAudioNow()
+      Log.w(TAG, "Failed to create completion-chime player", e)
+      null
+    }
+    if (player == null) {
       onFinished()
       return
     }
 
-    val runnable = Runnable {
-      fadeRunnable = null
-      stopAudioNow()
+    var finished = false
+    fun finishOnce() {
+      if (finished) return
+      finished = true
       onFinished()
     }
-    fadeRunnable = runnable
-    handler.postDelayed(runnable, FADE_MS + FADE_SETTLE_BUFFER_MS)
-  }
 
-  // Hard, immediate stop. Used as the fallback.
-  private fun stopAudioNow() {
-    takeAudioFocus()
-
-    val intent = Intent().apply {
-      component = ComponentName(packageName, "expo.modules.audio.service.AudioControlsService")
-      action = "expo.modules.audio.action.PAUSE"
+    player.setOnCompletionListener {
+      it.release()
+      finishOnce()
+    }
+    player.setOnErrorListener { mp, _, _ ->
+      mp.release()
+      finishOnce()
+      true
     }
     try {
-      startService(intent)
+      player.start()
     } catch (e: Exception) {
-      Log.w(TAG, "ACTION_PAUSE to expo-audio refused", e)
+      Log.w(TAG, "Failed to start completion-chime player", e)
+      player.release()
+      finishOnce()
     }
   }
 
-  private fun takeAudioFocus() {
-    val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+  private fun requestAudioFocus(): AudioFocusRequest? {
+    val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return null
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
@@ -252,16 +251,18 @@ class SessionService : Service() {
             .build(),
         )
         .build()
-      audioFocusRequest = request
       audioManager.requestAudioFocus(request)
-      audioManager.abandonAudioFocusRequest(request) // Allow user's own music to resume after the session.
-      audioFocusRequest = null
-    } else {
-      @Suppress("DEPRECATION")
-      audioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN)
-      @Suppress("DEPRECATION")
-      audioManager.abandonAudioFocus(null)
+      return request
     }
+
+    @Suppress("DEPRECATION")
+    audioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN)
+    return null
+  }
+
+  private fun releaseAudioFocus(request: AudioFocusRequest) {
+    val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+    audioManager.abandonAudioFocusRequest(request)
   }
 
   // --- notifications -----------------------------------------------------
@@ -363,8 +364,6 @@ class SessionService : Service() {
 
   override fun onDestroy() {
     cancelTick()
-    fadeRunnable?.let { handler.removeCallbacks(it) }
-    fadeRunnable = null
     mediaSession?.apply {
       isActive = false
       release()
@@ -391,9 +390,5 @@ class SessionService : Service() {
     private const val COMPLETED_NOTIFICATION_ID = 4221
 
     private const val TICK_MS = 1000L
-
-    // Matches the foreground fade-out in useAmbientSound.ts.
-    private const val FADE_MS = 1000L
-    private const val FADE_SETTLE_BUFFER_MS = 100L
   }
 }
