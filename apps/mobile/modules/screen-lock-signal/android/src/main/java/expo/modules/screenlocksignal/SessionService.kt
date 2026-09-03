@@ -152,10 +152,6 @@ class SessionService : Service() {
 
   // --- countdown ---------------------------------------------------------
 
-  /**
-   * Wakes only when the displayed minute actually changes, rather than on a
-   * fixed interval.
-   */
   private fun scheduleNextTick() {
     cancelTick()
     if (paused) return
@@ -167,11 +163,8 @@ class SessionService : Service() {
       return
     }
 
-    val minutesShown = ceil(remaining / 60_000.0).toInt()
-    val nextChangeAt = endAtMs - (minutesShown - 1) * 60_000L
-    val delay = (nextChangeAt - now).coerceIn(0, remaining)
+    val delay = TICK_MS.coerceAtMost(remaining)
 
-    Log.i(TAG, "scheduleNextTick remaining=${remaining}ms nextChangeIn=${delay}ms")
     val runnable = Runnable {
       updateNotification()
       scheduleNextTick()
@@ -324,9 +317,10 @@ class SessionService : Service() {
   private fun remainingText(): String {
     val remaining = endAtMs - System.currentTimeMillis()
     if (remaining <= 0) return "Session complete"
-    if (remaining < 60_000) return "< 1 min remaining"
-    val minutes = ceil(remaining / 60_000.0).toInt()
-    return if (minutes == 1) "1 min remaining" else "$minutes mins remaining"
+    val totalSeconds = ceil(remaining / 1000.0).toLong()
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%d:%02d remaining".format(minutes, seconds)
   }
 
   private fun startForegroundNotification() {
@@ -395,6 +389,8 @@ class SessionService : Service() {
     private const val ALERT_CHANNEL_ID = "nalvie_session_alerts"
     private const val SESSION_NOTIFICATION_ID = 4220
     private const val COMPLETED_NOTIFICATION_ID = 4221
+
+    private const val TICK_MS = 1000L
 
     // Matches the foreground fade-out in useAmbientSound.ts.
     private const val FADE_MS = 1000L

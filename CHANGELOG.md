@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- The lock screen now shows a live countdown for an in-progress session ("5 mins remaining") instead of a fixed "25 min session" label.
+- The lock screen now shows a live countdown for an in-progress session instead of a fixed "25 min session" label.
 
 ### Fixed
 
