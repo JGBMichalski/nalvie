@@ -34,6 +34,7 @@ import kotlin.math.ceil
 class SessionService : Service() {
   private val handler = Handler(Looper.getMainLooper())
   private var tick: Runnable? = null
+  private var fadeRunnable: Runnable? = null
 
   private var endAtMs: Long = 0
   private var sessionStartedAtMs: Long = 0 // Only used to give the media card a progress bar
@@ -185,15 +186,54 @@ class SessionService : Service() {
   }
 
   private fun onSessionComplete() {
-    Log.i(TAG, "onSessionComplete expectingFailure=$expectingFailure")
-    stopAudio()
-    if (!expectingFailure) notifyCompleted()
-    stopSessionService()
+    Log.i(TAG, "onSessionComplete expectingFailure=$expectingFailure locked=${isLockedOrNonInteractive()}")
+
+    if (isLockedOrNonInteractive()) {
+      fadeOutThenStopAudio {
+        if (!expectingFailure) notifyCompleted()
+        stopSessionService()
+      }
+    } else {
+      if (!expectingFailure) notifyCompleted()
+      stopSessionService()
+    }
+  }
+
+  private fun isLockedOrNonInteractive(): Boolean {
+    val powerManager = getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+    val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
+    val interactive = powerManager?.isInteractive ?: true
+    val locked = keyguardManager?.isKeyguardLocked ?: false
+    return !interactive || locked
   }
 
   // --- audio -------------------------------------------------------------
 
-  private fun stopAudio() {
+  private fun fadeOutThenStopAudio(onFinished: () -> Unit) {
+    val intent = Intent().apply {
+      component = ComponentName(packageName, "expo.modules.audio.service.AudioControlsService")
+      action = "expo.modules.audio.action.FADE_PAUSE"
+    }
+    try {
+      startService(intent)
+    } catch (e: Exception) {
+      Log.w(TAG, "FADE_PAUSE refused, falling back to an instant stop", e)
+      stopAudioNow()
+      onFinished()
+      return
+    }
+
+    val runnable = Runnable {
+      fadeRunnable = null
+      stopAudioNow()
+      onFinished()
+    }
+    fadeRunnable = runnable
+    handler.postDelayed(runnable, FADE_MS + FADE_SETTLE_BUFFER_MS)
+  }
+
+  // Hard, immediate stop. Used as the fallback.
+  private fun stopAudioNow() {
     takeAudioFocus()
 
     val intent = Intent().apply {
@@ -279,7 +319,7 @@ class SessionService : Service() {
       .build()
   }
 
-  private fun smallIconRes(): Int = applicationInfo.icon
+  private fun smallIconRes(): Int = R.drawable.ic_notification
 
   private fun remainingText(): String {
     val remaining = endAtMs - System.currentTimeMillis()
@@ -310,11 +350,7 @@ class SessionService : Service() {
 
   // Only surfaced when the user isn't already looking at the app.
   private fun notifyCompleted() {
-    val powerManager = getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
-    val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as? android.app.KeyguardManager
-    val interactive = powerManager?.isInteractive ?: true
-    val locked = keyguardManager?.isKeyguardLocked ?: false
-    if (interactive && !locked) return
+    if (!isLockedOrNonInteractive()) return
 
     val notification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
       .setSmallIcon(smallIconRes())
@@ -333,6 +369,8 @@ class SessionService : Service() {
 
   override fun onDestroy() {
     cancelTick()
+    fadeRunnable?.let { handler.removeCallbacks(it) }
+    fadeRunnable = null
     mediaSession?.apply {
       isActive = false
       release()
@@ -357,5 +395,9 @@ class SessionService : Service() {
     private const val ALERT_CHANNEL_ID = "nalvie_session_alerts"
     private const val SESSION_NOTIFICATION_ID = 4220
     private const val COMPLETED_NOTIFICATION_ID = 4221
+
+    // Matches the foreground fade-out in useAmbientSound.ts.
+    private const val FADE_MS = 1000L
+    private const val FADE_SETTLE_BUFFER_MS = 100L
   }
 }

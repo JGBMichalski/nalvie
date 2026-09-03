@@ -6,3 +6,5 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - expo-constants@57.0.13
   - expo-notifications@57.0.13
+patchedDependencies:
+  expo-audio: patches/expo-audio.patch
