@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- The selected fish now grows across a running session. It starts as a small egg that hatches into a tiny fish and grows to its full tank size by the time the timer reaches zero.
 - The lock screen now shows a live countdown for an in-progress session instead of a fixed "25 min session" label.
 - A short completion chime plays the moment a session's timer reaches zero, on both platforms, whether the screen is locked or not.
 

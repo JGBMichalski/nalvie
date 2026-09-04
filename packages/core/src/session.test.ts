@@ -8,8 +8,10 @@ import {
   elapsedMs,
   failSession,
   finalizeInterruptedSession,
+  growthStage,
   hasUsedPause,
   isSessionComplete,
+  sessionProgress,
 } from "./session.js";
 import type { SessionRepository } from "./repository.js";
 import type { FocusSession } from "./types.js";
@@ -199,6 +201,36 @@ describe("session", () => {
         outcome: "failed",
         awardedItemId: null,
       });
+    });
+  });
+
+  describe("sessionProgress", () => {
+    const base: FocusSession = {
+      id: "s1",
+      plannedDurationMinutes: 10,
+      startedAt: new Date("2026-01-01T00:00:00.000Z").toISOString(),
+      endedAt: null,
+      outcome: null,
+      selectedItemId: "clownfish",
+      awardedItemId: null,
+      pausedMs: 0,
+    };
+
+    it("is 0 at the start and 1 at completion, clamped", () => {
+      expect(sessionProgress(base, new Date("2026-01-01T00:00:00.000Z"))).toBe(0);
+      expect(sessionProgress(base, new Date("2026-01-01T00:05:00.000Z"))).toBeCloseTo(0.5);
+      expect(sessionProgress(base, new Date("2026-01-01T00:20:00.000Z"))).toBe(1);
+    });
+  });
+
+  describe("growthStage", () => {
+    it("advances egg -> fish across progress", () => {
+      expect(growthStage(0)).toBe("egg");
+      expect(growthStage(0.32)).toBe("egg");
+      expect(growthStage(1 / 3)).toBe("fish");
+      expect(growthStage(0.6)).toBe("fish");
+      expect(growthStage(2 / 3)).toBe("fish");
+      expect(growthStage(1)).toBe("fish");
     });
   });
 });

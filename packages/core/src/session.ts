@@ -26,6 +26,23 @@ export function completesAt(session: Pick<FocusSession, "startedAt" | "plannedDu
   return new Date(session.startedAt).getTime() + session.plannedDurationMinutes * 60_000 + session.pausedMs;
 }
 
+export function sessionProgress(
+  session: Pick<FocusSession, "startedAt" | "plannedDurationMinutes" | "pausedMs">,
+  now: Date = new Date()
+): number {
+  const total = session.plannedDurationMinutes * 60_000;
+  if (total <= 0) return 1;
+  return Math.min(1, Math.max(0, elapsedMs(session, now) / total));
+}
+
+export type GrowthStage = "egg" | "fish"; // Egg is the initial stage, fish is the stage after hatching.
+const FISH_AT = 1 / 3; // Egg hatches at a third
+
+export function growthStage(progress: number): GrowthStage {
+  if (progress >= FISH_AT) return "fish";
+  return "egg";
+}
+
 /**
  * Call once on app launch. If a session was left in-progress (force-quit
  * before it could be finalized), it's retroactively marked failed — per the

@@ -8,6 +8,7 @@ import { UNLOCK_POOL } from '@nalvie/core';
 import { DurationPickerSheet } from '../components/DurationPickerSheet';
 import { FishPickerSheet } from '../components/FishPickerSheet';
 import { GlassPanel } from '../components/GlassPanel';
+import { GrowingFish } from '../components/GrowingFish';
 import { MenuPopover } from '../components/MenuPopover';
 import { PickerSheet } from '../components/PickerSheet';
 import { TankBackdrop } from '../components/TankBackdrop';
@@ -223,6 +224,8 @@ export default function HomeScreen() {
         </GlassPanel>
 
         <TankScene items={unlockedItems} />
+
+        {phase === 'in-progress' && session && <GrowingFish session={session} isPaused={isPaused} />}
 
         {__DEV__ && (
           <Pressable
