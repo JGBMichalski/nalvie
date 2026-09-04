@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, Easing } from 'react-native';
 import { growthStage, sessionProgress, type FocusSession, type GrowthStage } from '@nalvie/core';
 
 import { tankItemSizeScale } from '../lib/tank-item-visuals';
@@ -71,29 +71,13 @@ export function GrowingFish({ session, isPaused }: { session: FocusSession; isPa
     }).start();
   }, [stage, fade]);
 
-  return (
-    <View style={styles.container} pointerEvents="none">
-      {stage === 'egg' ? (
-        <Animated.View style={{ opacity: fade, transform: [{ scale: fade }] }}>
-          <Egg size={EGG_SIZE} />
-        </Animated.View>
-      ) : (
-        <Animated.View style={{ opacity: fade, transform: [{ scale: Animated.multiply(fade, growthScale) }] }}>
-          <TankItemVisual itemId={session.selectedItemId} size={TANK_SIZE * tankItemSizeScale(session.selectedItemId)} />
-        </Animated.View>
-      )}
-    </View>
+  return stage === 'egg' ? (
+    <Animated.View style={{ opacity: fade, transform: [{ scale: fade }] }}>
+      <Egg size={EGG_SIZE} />
+    </Animated.View>
+  ) : (
+    <Animated.View style={{ opacity: fade, transform: [{ scale: Animated.multiply(fade, growthScale) }] }}>
+      <TankItemVisual itemId={session.selectedItemId} size={TANK_SIZE * tankItemSizeScale(session.selectedItemId)} />
+    </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

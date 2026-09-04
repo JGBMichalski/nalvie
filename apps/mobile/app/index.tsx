@@ -8,12 +8,13 @@ import { UNLOCK_POOL } from '@nalvie/core';
 import { DurationPickerSheet } from '../components/DurationPickerSheet';
 import { FishPickerSheet } from '../components/FishPickerSheet';
 import { GlassPanel } from '../components/GlassPanel';
-import { GrowingFish } from '../components/GrowingFish';
+import { IncubatorBubble } from '../components/IncubatorBubble';
 import { MenuPopover } from '../components/MenuPopover';
 import { PickerSheet } from '../components/PickerSheet';
 import { TankBackdrop } from '../components/TankBackdrop';
 import { TankScene } from '../components/TankScene';
 import { useAmbientSound, toAmbientSource, type AmbientSource } from '../hooks/useAmbientSound';
+import { useSessionIncubator } from '../hooks/useSessionIncubator';
 import { useSessionLoop } from '../hooks/useSessionLoop';
 import { DEFAULT_SETTINGS } from '../lib/default-settings';
 import { sessionRepository, settingsRepository } from '../lib/repository';
@@ -170,6 +171,7 @@ export default function HomeScreen() {
     purchaseSpecies,
     refresh,
   } = useSessionLoop(sessionRepository);
+  const incubator = useSessionIncubator(phase, session);
 
   // Redirect to the intro before this screen ever renders its content.
   useEffect(() => {
@@ -225,7 +227,9 @@ export default function HomeScreen() {
 
         <TankScene items={unlockedItems} />
 
-        {phase === 'in-progress' && session && <GrowingFish session={session} isPaused={isPaused} />}
+        {incubator.visible && incubator.session && (
+          <IncubatorBubble session={incubator.session} isPaused={isPaused} releaseState={incubator.releaseState} />
+        )}
 
         {__DEV__ && (
           <Pressable
