@@ -210,4 +210,70 @@ describe('<FishPickerSheet />', () => {
       alertSpy.mockRestore();
     });
   });
+
+  describe('random selection', () => {
+    it('selects one of the owned items when the random tile is pressed', async () => {
+      const onSelect = jest.fn();
+      const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+      await render(
+        <FishPickerSheet
+          visible
+          items={items}
+          ownedSpeciesIds={ownedAll}
+          pointsBalance={0}
+          onClose={jest.fn()}
+          onSelect={onSelect}
+          onPurchase={jest.fn()}
+        />,
+      );
+
+      fireEvent.press(screen.getByTestId('fish-item-random'));
+
+      expect(onSelect).toHaveBeenCalledTimes(1);
+      expect(items.map((item) => item.id)).toContain(onSelect.mock.calls[0][0]);
+      randomSpy.mockRestore();
+    });
+
+    it('only picks among owned items, never a locked one', async () => {
+      const onSelect = jest.fn();
+      const ownedOnlyClownfish = new Set(['clownfish']);
+      await render(
+        <FishPickerSheet
+          visible
+          items={items}
+          ownedSpeciesIds={ownedOnlyClownfish}
+          pointsBalance={0}
+          onClose={jest.fn()}
+          onSelect={onSelect}
+          onPurchase={jest.fn()}
+        />,
+      );
+
+      fireEvent.press(screen.getByTestId('fish-item-random'));
+
+      expect(onSelect).toHaveBeenCalledWith('clownfish');
+    });
+
+    it('disables the random tile when no items are owned', async () => {
+      const onSelect = jest.fn();
+      await render(
+        <FishPickerSheet
+          visible
+          items={items}
+          ownedSpeciesIds={new Set()}
+          pointsBalance={0}
+          onClose={jest.fn()}
+          onSelect={onSelect}
+          onPurchase={jest.fn()}
+        />,
+      );
+
+      const randomTile = screen.getByTestId('fish-item-random');
+      expect(randomTile.props.accessibilityState?.disabled).toBe(true);
+
+      fireEvent.press(randomTile);
+
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+  });
 });

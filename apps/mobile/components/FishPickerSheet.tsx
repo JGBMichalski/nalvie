@@ -8,6 +8,14 @@ import { useTheme } from '../lib/ThemeProvider';
 
 const ITEM_VISUAL_SIZE = 48;
 
+const RANDOM_TILE_ID = '__random__';
+
+function pickRandomOwnedId(items: UnlockPoolItem[], ownedSpeciesIds: ReadonlySet<string>): string | undefined {
+  const owned = items.filter((item) => ownedSpeciesIds.has(item.id));
+  if (owned.length === 0) return undefined;
+  return owned[Math.floor(Math.random() * owned.length)].id;
+}
+
 export function FishPickerSheet({
   visible,
   items,
@@ -93,9 +101,15 @@ export function FishPickerSheet({
           fontSize: 10,
           textAlign: 'center',
         },
+        randomIcon: {
+          fontSize: ITEM_VISUAL_SIZE * 0.6,
+          textAlign: 'center',
+        },
       }),
     [theme],
   );
+
+  const data = useMemo<Array<UnlockPoolItem | typeof RANDOM_TILE_ID>>(() => [...items, RANDOM_TILE_ID], [items]);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -104,26 +118,52 @@ export function FishPickerSheet({
         <Text style={styles.title}>Choose a fish</Text>
 
         <FlatList
-          data={items}
-          keyExtractor={(item) => item.id}
+          data={data}
+          keyExtractor={(item) => (item === RANDOM_TILE_ID ? RANDOM_TILE_ID : item.id)}
           numColumns={3}
           columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => {
+            if (item === RANDOM_TILE_ID) {
+              const hasOwnedFish = items.some((poolItem) => ownedSpeciesIds.has(poolItem.id));
+
+              function handleRandomPress() {
+                const randomId = pickRandomOwnedId(items, ownedSpeciesIds);
+                if (randomId) onSelect(randomId);
+              }
+
+              return (
+                <Pressable
+                  style={[styles.item, !hasOwnedFish && styles.itemLocked]}
+                  onPress={handleRandomPress}
+                  disabled={!hasOwnedFish}
+                  testID="fish-item-random"
+                  accessibilityState={{ disabled: !hasOwnedFish }}
+                  accessibilityLabel="Random unlocked fish"
+                >
+                  <View style={styles.stage}>
+                    <Text style={styles.randomIcon}>🎲</Text>
+                  </View>
+                  <Text style={styles.itemName}>Random</Text>
+                </Pressable>
+              );
+            }
+
             const owned = ownedSpeciesIds.has(item.id);
             const affordable = owned || canAfford(pointsBalance, item);
             const locked = !owned && !affordable;
             const costLabel = owned ? '' : unlockCostLabel(item);
+            const fishItem: UnlockPoolItem = item;
 
             function handlePress() {
               if (locked) return;
               if (owned) {
-                onSelect(item.id);
+                onSelect(fishItem.id);
                 return;
               }
-              Alert.alert(`Buy ${item.name} for ${costLabel.replace(' to unlock', '')}?`, undefined, [
+              Alert.alert(`Buy ${fishItem.name} for ${costLabel.replace(' to unlock', '')}?`, undefined, [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Buy', onPress: () => onPurchase(item.id) },
+                { text: 'Buy', onPress: () => onPurchase(fishItem.id) },
               ]);
             }
 
