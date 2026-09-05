@@ -242,6 +242,10 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     await refreshFromRepository();
   }, [repository, refreshFromRepository]);
 
+  const exitSession = useCallback(() => {
+    if (session) finishFail(session);
+  }, [session, finishFail]);
+
   return {
     phase,
     session,
@@ -260,6 +264,7 @@ export function useSessionLoop(repository: SessionRepository, appState?: AppStat
     toggleSessionMute,
     purchaseSpecies,
     clearTank,
+    exitSession,
     refresh: refreshFromRepository,
   };
 }

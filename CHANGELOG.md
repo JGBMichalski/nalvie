@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- A session now has an "End session" button in the top-right corner, with a confirmation prompt.
 - The fish picker now has a "Random" option that selects one of your unlocked fish at random.
 - The selected fish now grows across a running session. It starts as a small egg that hatches into a tiny fish and grows to its full tank size by the time the timer reaches zero.
 - The lock screen now shows a live countdown for an in-progress session instead of a fixed "25 min session" label.

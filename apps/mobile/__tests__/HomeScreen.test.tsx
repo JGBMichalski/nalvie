@@ -1,4 +1,5 @@
 import { act, fireEvent } from '@testing-library/react-native';
+import { Alert } from 'react-native';
 import { renderRouter, screen } from 'expo-router/testing-library';
 import { MIN_SESSION_MINUTES } from '@nalvie/core';
 
@@ -64,6 +65,49 @@ describe('<HomeScreen />', () => {
 
     fireEvent.press(screen.getByText('Resume'));
     expect(screen.getByText('Pause used')).toBeTruthy();
+  });
+
+  describe('ending a session early', () => {
+    async function startASession() {
+      renderRouter('./app', { initialUrl: '/' });
+      await act(async () => {});
+
+      fireEvent.press(await screen.findByLabelText('Start a session'));
+      fireEvent.press(screen.getByText('Clownfish'));
+      fireEvent.press(screen.getByText('Start'));
+      await act(async () => {}); // flush startSession's repository write
+    }
+
+    it('ends the session and returns to idle when the end-session button is confirmed', async () => {
+      const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => {
+        const endButton = buttons?.find((button) => button.text === 'End session');
+        endButton?.onPress?.();
+      });
+
+      await startASession();
+      fireEvent.press(screen.getByLabelText('End session'));
+      await act(async () => {}); // flush exitSession's repository write
+
+      expect(screen.getByText('Session ended early — no reward this time')).toBeTruthy();
+      await act(async () => {
+        jest.advanceTimersByTime(3000);
+      });
+      expect(screen.getByLabelText('Start a session')).toBeTruthy();
+
+      alertSpy.mockRestore();
+    });
+
+    it('keeps the session running when the end-session confirmation is cancelled', async () => {
+      const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation();
+
+      await startASession();
+      fireEvent.press(screen.getByLabelText('End session'));
+
+      expect(alertSpy).toHaveBeenCalled();
+      expect(screen.getByText('Pause')).toBeTruthy(); // still an active session
+
+      alertSpy.mockRestore();
+    });
   });
 
   it('shows a toast for the chosen fish when the session completes, then returns to idle', async () => {

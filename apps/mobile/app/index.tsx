@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Link, router, useFocusEffect } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -66,6 +66,18 @@ export default function HomeScreen() {
         menuIcon: {
           color: theme.colors.textPrimary,
           fontSize: 20,
+        },
+        exitButton: {
+          position: 'absolute',
+          right: 20,
+          width: 44,
+          height: 44,
+          borderRadius: 12,
+          backgroundColor: theme.colors.glassBackground,
+          borderColor: theme.colors.glassBorder,
+          borderWidth: StyleSheet.hairlineWidth,
+          alignItems: 'center',
+          justifyContent: 'center',
         },
         fab: {
           position: 'absolute',
@@ -169,6 +181,7 @@ export default function HomeScreen() {
     togglePause,
     toggleSessionMute,
     purchaseSpecies,
+    exitSession,
     refresh,
   } = useSessionLoop(sessionRepository);
   const incubator = useSessionIncubator(phase, session);
@@ -211,6 +224,13 @@ export default function HomeScreen() {
 
   const pauseLabel = isPaused ? 'Resume' : hasUsedPause ? 'Pause used' : 'Pause';
 
+  const confirmExitSession = useCallback(() => {
+    Alert.alert('End session early?', 'You won\u2019t earn a reward for this session.', [
+      { text: 'Keep going', style: 'cancel' },
+      { text: 'End session', style: 'destructive', onPress: exitSession },
+    ]);
+  }, [exitSession]);
+
   if (!onboardingGateResolved) {
     return <TankBackdrop>{null}</TankBackdrop>;
   }
@@ -233,12 +253,26 @@ export default function HomeScreen() {
 
         {__DEV__ && (
           <Pressable
-            style={StyleSheet.flatten([styles.menuButton, { top: insets.top + 20 }])}
+            style={StyleSheet.flatten([
+              styles.menuButton,
+              { top: insets.top + 20 + (phase === 'in-progress' ? 56 : 0) },
+            ])}
             hitSlop={8}
             accessibilityLabel="Open menu"
             onPress={() => setMenuOpen(true)}
           >
             <Text style={styles.menuIcon}>☰</Text>
+          </Pressable>
+        )}
+
+        {phase === 'in-progress' && session && (
+          <Pressable
+            style={StyleSheet.flatten([styles.exitButton, { top: insets.top + 20 }])}
+            hitSlop={8}
+            accessibilityLabel="End session"
+            onPress={confirmExitSession}
+          >
+            <Ionicons name="close" size={22} color={theme.colors.textPrimary} />
           </Pressable>
         )}
 
